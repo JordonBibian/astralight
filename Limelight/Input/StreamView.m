@@ -129,6 +129,21 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
     [self becomeFirstResponder];
 }
 
+- (void)cleanup {
+    self.userInteractionEnabled = NO;
+    [self endEditing:YES];
+    [self textFieldDidEndEditing:keyInputField];
+    [touchHandler touchesCancelled:[NSSet set] withEvent:nil];
+    [interactionTimer invalidate];
+    interactionTimer = nil;
+    interactionDelegate = nil;
+    keyInputField.delegate = nil;
+    touchHandler = nil;
+    onScreenControls = nil;
+    x1mouse.delegate = nil;
+    x1mouse = nil;
+}
+
 - (void)startInteractionTimer {
     // Restart user interaction tracking
     hasUserInteracted = NO;

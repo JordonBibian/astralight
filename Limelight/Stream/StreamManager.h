@@ -14,6 +14,8 @@
 - (id) initWithConfig:(StreamConfiguration*)config renderView:(UIView*)view connectionCallbacks:(id<ConnectionCallbacks>)callback;
 
 - (void) stopStream;
+// Cancels pending launch work and completes on the main queue after shutdown.
+- (void) stopStreamWithCompletion:(dispatch_block_t)completion;
 
 - (NSString*) getStatsOverlayText;
 

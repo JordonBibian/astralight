@@ -16,6 +16,7 @@
 @implementation Utils
 NSString *const deviceName = @"roth";
 NSString *const AstralightSpatialUpscalingEnabled = @"AstralightSpatialUpscalingEnabled";
+NSNotificationName const AstralightSceneGeometryDidChange = @"AstralightSceneGeometryDidChange";
 
 + (UIWindow *)windowForView:(UIView *)view {
     if (view.window) return view.window;

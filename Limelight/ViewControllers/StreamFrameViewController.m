@@ -30,6 +30,10 @@
 - (id)initWithRefreshRate:(float)arg1 videoDynamicRange:(int)arg2;
 @end
 
+@interface StreamFrameViewController ()
+@property (atomic) BOOL sessionEnding;
+@end
+
 @implementation StreamFrameViewController {
     ControllerSupport *_controllerSupport;
     StreamManager *_streamMan;
@@ -47,6 +51,14 @@
     UIScrollView *_scrollView;
     BOOL _userIsInteracting;
     CGSize _keyboardSize;
+    BOOL _leavingStream;
+    BOOL _inputCleanedUp;
+#if !TARGET_OS_TV
+    BOOL _streamConnected;
+    BOOL _reloadingForDisplayChange;
+    NSTimer *_displayChangeTimer;
+    CGSize _pendingNativeSize;
+#endif
     
 #if !TARGET_OS_TV
     UIScreenEdgePanGestureRecognizer *_exitSwipeRecognizer;
@@ -56,6 +68,9 @@
 - (void)viewDidAppear:(BOOL)animated
 {
     [super viewDidAppear:animated];
+#if !TARGET_OS_TV
+    [self checkForDisplayResolutionChange];
+#endif
     
 #if !TARGET_OS_TV
     [[self revealViewController] setPrimaryViewController:self];
@@ -78,6 +93,15 @@
 - (void)viewDidLoad
 {
     [super viewDidLoad];
+    self.view.multipleTouchEnabled = YES;
+    self.view.backgroundColor = UIColor.blackColor;
+#if !TARGET_OS_TV
+    [self updateStreamResolution:[self currentNativeDisplaySize]];
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(displayGeometryChanged:)
+                                               name:AstralightSceneGeometryDidChange object:nil];
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(displayGeometryChanged:)
+                                               name:UISceneDidActivateNotification object:nil];
+#endif
     
     [self.navigationController setNavigationBarHidden:YES animated:YES];
     
@@ -152,9 +176,7 @@
     _tipLabel.textAlignment = NSTextAlignmentCenter;
     _tipLabel.center = CGPointMake(self.view.frame.size.width / 2, self.view.frame.size.height * 0.9);
     
-    _streamMan = [[StreamManager alloc] initWithConfig:self.streamConfig
-                                            renderView:_streamView
-                                   connectionCallbacks:self];
+    _streamMan = [self newStreamManager];
     NSOperationQueue* opQueue = [[NSOperationQueue alloc] init];
     [opQueue addOperation:_streamMan];
     
@@ -212,6 +234,119 @@
     [self.view addSubview:_tipLabel];
 }
 
+- (StreamManager *)newStreamManager {
+    return [[StreamManager alloc] initWithConfig:self.streamConfig renderView:_streamView connectionCallbacks:self];
+}
+
+- (void)cleanupStreamInput {
+    if (_inputCleanedUp) return;
+    _inputCleanedUp = YES;
+    [_streamView cleanup];
+    [_controllerSupport cleanup];
+}
+
+#if !TARGET_OS_TV
+- (CGSize)currentNativeDisplaySize {
+    return [Utils nativeDisplaySizeForView:self.view];
+}
+
+- (BOOL)validNativeSize:(CGSize)size {
+    return isfinite(size.width) && isfinite(size.height) && size.width >= 2 && size.height >= 2;
+}
+
+- (void)updateStreamResolution:(CGSize)nativeSize {
+    if (![self validNativeSize:nativeSize]) return;
+    self.streamConfig.nativeSize = nativeSize;
+    CGSize streamSize = [Utils streamSizeForNativeSize:nativeSize upscaling:self.streamConfig.useSpatialUpscaling];
+    self.streamConfig.width = (int)streamSize.width;
+    self.streamConfig.height = (int)streamSize.height;
+}
+
+- (void)displayGeometryChanged:(NSNotification *)notification {
+    if (notification.object != self.view.window.windowScene) return;
+    [self checkForDisplayResolutionChange];
+}
+
+- (void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+    _scrollView.frame = self.view.bounds;
+    if (!_scrollView || _scrollView.zoomScale == 1) {
+        _streamView.frame = self.view.bounds;
+        _scrollView.contentSize = self.view.bounds.size;
+    }
+    _stageLabel.center = CGPointMake(CGRectGetMidX(self.view.bounds), CGRectGetMidY(self.view.bounds));
+    _spinner.center = CGPointMake(_stageLabel.center.x, _stageLabel.center.y - _stageLabel.bounds.size.height - _spinner.bounds.size.height);
+    _tipLabel.center = CGPointMake(_stageLabel.center.x, self.view.bounds.size.height * 0.9);
+    [self checkForDisplayResolutionChange];
+}
+
+- (void)checkForDisplayResolutionChange {
+    if (!_streamConnected || self.sessionEnding || _leavingStream || _reloadingForDisplayChange || !self.view.window) return;
+    CGSize nativeSize = [self currentNativeDisplaySize];
+    if (![self validNativeSize:nativeSize]) return;
+    if (CGSizeEqualToSize(nativeSize, self.streamConfig.nativeSize)) {
+        [_displayChangeTimer invalidate];
+        _displayChangeTimer = nil;
+        return;
+    }
+    if (_displayChangeTimer && CGSizeEqualToSize(nativeSize, _pendingNativeSize)) return;
+    _pendingNativeSize = nativeSize;
+    [_displayChangeTimer invalidate];
+    // Folding can produce several intermediate layouts/screens. Resume only
+    // after a stable native size, never for rotation or safe-area changes alone.
+    _displayChangeTimer = [NSTimer scheduledTimerWithTimeInterval:0.65 target:self
+                                                       selector:@selector(displayChangeSettled:)
+                                                       userInfo:nil repeats:NO];
+}
+
+- (void)displayChangeSettled:(NSTimer *)timer {
+    _displayChangeTimer = nil;
+    if (self.sessionEnding || _leavingStream || self.view.window.windowScene.activationState != UISceneActivationStateForegroundActive) return;
+    CGSize latestSize = [self currentNativeDisplaySize];
+    if (!CGSizeEqualToSize(latestSize, _pendingNativeSize)) {
+        [self checkForDisplayResolutionChange];
+        return;
+    }
+    if (CGSizeEqualToSize(latestSize, self.streamConfig.nativeSize)) return;
+    [self reloadStreamForDisplayChange];
+}
+
+- (void)reloadStreamForDisplayChange {
+    _reloadingForDisplayChange = YES;
+    self.sessionEnding = YES;
+    [_statsUpdateTimer invalidate];
+    _statsUpdateTimer = nil;
+    [self cleanupStreamInput];
+    _streamView.hidden = YES;
+    _overlayView.hidden = YES;
+    _tipLabel.hidden = YES;
+    _stageLabel.text = @"Adjusting stream to this screen…";
+    [_stageLabel sizeToFit];
+    _stageLabel.hidden = NO;
+    [_spinner startAnimating];
+    [self.view setNeedsLayout];
+    Log(LOG_I, @"Display changed: %.0fx%.0f -> %.0fx%.0f. Resuming stream.",
+        self.streamConfig.nativeSize.width, self.streamConfig.nativeSize.height,
+        _pendingNativeSize.width, _pendingNativeSize.height);
+    [_streamMan stopStreamWithCompletion:^{
+        // A swipe out, backgrounding, or another navigation wins over a reload.
+        if (self->_leavingStream || self.navigationController.topViewController != self) return;
+        CGSize nativeSize = [self currentNativeDisplaySize];
+        if (![self validNativeSize:nativeSize]) nativeSize = self->_pendingNativeSize;
+        [self updateStreamResolution:nativeSize];
+        self.streamConfig.gamepadMask = [ControllerSupport getConnectedGamepadMask:self.streamConfig];
+        StreamFrameViewController *replacement = [[self.class alloc] init];
+        replacement.streamConfig = self.streamConfig;
+        NSMutableArray *stack = [self.navigationController.viewControllers mutableCopy];
+        stack[stack.count - 1] = replacement;
+        // Rebuild input coordinate mapping and MetalFX output for the new screen.
+        // StreamManager resumes the running host app; it never quits the game.
+        [self.navigationController setViewControllers:stack animated:NO];
+        UIApplication.sharedApplication.idleTimerDisabled = YES;
+    }];
+}
+#endif
+
 - (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
     return _streamView;
 }
@@ -219,7 +354,13 @@
 - (void)willMoveToParentViewController:(UIViewController *)parent {
     // Only cleanup when we're being destroyed
     if (parent == nil) {
-        [_controllerSupport cleanup];
+        _leavingStream = YES;
+        self.sessionEnding = YES;
+#if !TARGET_OS_TV
+        [_displayChangeTimer invalidate];
+        _displayChangeTimer = nil;
+#endif
+        [self cleanupStreamInput];
         [UIApplication sharedApplication].idleTimerDisabled = NO;
         [_streamMan stopStream];
         if (_inactivityTimer != nil) {
@@ -258,6 +399,7 @@
     NSString* overlayText = [self->_streamMan getStatsOverlayText];
     
     dispatch_async(dispatch_get_main_queue(), ^{
+        if (self.sessionEnding) return;
         [self updateOverlayText:overlayText];
     });
 }
@@ -307,6 +449,12 @@
 }
 
 - (void) returnToMainFrame {
+    _leavingStream = YES;
+    self.sessionEnding = YES;
+#if !TARGET_OS_TV
+    [_displayChangeTimer invalidate];
+    _displayChangeTimer = nil;
+#endif
     // Reset display mode back to default
     [self updatePreferredDisplayMode:NO];
     
@@ -342,6 +490,9 @@
 }
 
 - (void)applicationDidBecomeActive:(NSNotification *)notification {
+#if !TARGET_OS_TV
+    [self checkForDisplayResolutionChange];
+#endif
     // Stop the background timer, since we're foregrounded again
     if (_inactivityTimer != nil) {
         Log(LOG_I, @"Stopping inactivity timer after becoming active again");
@@ -369,8 +520,14 @@
 }
 
 - (void) connectionStarted {
+    if (self.sessionEnding) return;
     Log(LOG_I, @"Connection started");
     dispatch_async(dispatch_get_main_queue(), ^{
+        if (self.sessionEnding) return;
+#if !TARGET_OS_TV
+        self->_streamConnected = YES;
+        [self checkForDisplayResolutionChange];
+#endif
         // Leave the spinner spinning until it's obscured by
         // the first frame of video.
         self->_stageLabel.hidden = YES;
@@ -391,12 +548,19 @@
 }
 
 - (void)connectionTerminated:(int)errorCode {
+    if (self.sessionEnding) return;
     Log(LOG_I, @"Connection terminated: %d", errorCode);
     
     unsigned int portFlags = LiGetPortFlagsFromTerminationErrorCode(errorCode);
     unsigned int portTestResults = LiTestClientConnectivity(CONN_TEST_SERVER, 443, portFlags);
     
     dispatch_async(dispatch_get_main_queue(), ^{
+        if (self.sessionEnding) return;
+        self.sessionEnding = YES;
+#if !TARGET_OS_TV
+        [self->_displayChangeTimer invalidate];
+        self->_displayChangeTimer = nil;
+#endif
         // Allow the display to go to sleep now
         [UIApplication sharedApplication].idleTimerDisabled = NO;
         
@@ -472,8 +636,10 @@
 }
 
 - (void) stageStarting:(const char*)stageName {
+    if (self.sessionEnding) return;
     Log(LOG_I, @"Starting %s", stageName);
     dispatch_async(dispatch_get_main_queue(), ^{
+        if (self.sessionEnding) return;
         NSString* lowerCase = [NSString stringWithFormat:@"%s in progress...", stageName];
         NSString* titleCase = [[[lowerCase substringToIndex:1] uppercaseString] stringByAppendingString:[lowerCase substringFromIndex:1]];
         [self->_stageLabel setText:titleCase];
@@ -486,11 +652,18 @@
 }
 
 - (void) stageFailed:(const char*)stageName withError:(int)errorCode portTestFlags:(int)portTestFlags {
+    if (self.sessionEnding) return;
     Log(LOG_I, @"Stage %s failed: %d", stageName, errorCode);
     
     unsigned int portTestResults = LiTestClientConnectivity(CONN_TEST_SERVER, 443, portTestFlags);
 
     dispatch_async(dispatch_get_main_queue(), ^{
+        if (self.sessionEnding) return;
+        self.sessionEnding = YES;
+#if !TARGET_OS_TV
+        [self->_displayChangeTimer invalidate];
+        self->_displayChangeTimer = nil;
+#endif
         // Allow the display to go to sleep now
         [UIApplication sharedApplication].idleTimerDisabled = NO;
         
@@ -518,9 +691,16 @@
 }
 
 - (void) launchFailed:(NSString*)message {
+    if (self.sessionEnding) return;
     Log(LOG_I, @"Launch failed: %@", message);
     
     dispatch_async(dispatch_get_main_queue(), ^{
+        if (self.sessionEnding) return;
+        self.sessionEnding = YES;
+#if !TARGET_OS_TV
+        [self->_displayChangeTimer invalidate];
+        self->_displayChangeTimer = nil;
+#endif
         // Allow the display to go to sleep now
         [UIApplication sharedApplication].idleTimerDisabled = NO;
         
@@ -536,24 +716,28 @@
 }
 
 - (void)rumble:(unsigned short)controllerNumber lowFreqMotor:(unsigned short)lowFreqMotor highFreqMotor:(unsigned short)highFreqMotor {
+    if (self.sessionEnding) return;
     Log(LOG_I, @"Rumble on gamepad %d: %04x %04x", controllerNumber, lowFreqMotor, highFreqMotor);
     
     [_controllerSupport rumble:controllerNumber lowFreqMotor:lowFreqMotor highFreqMotor:highFreqMotor];
 }
 
 - (void) rumbleTriggers:(uint16_t)controllerNumber leftTrigger:(uint16_t)leftTrigger rightTrigger:(uint16_t)rightTrigger {
+    if (self.sessionEnding) return;
     Log(LOG_I, @"Trigger rumble on gamepad %d: %04x %04x", controllerNumber, leftTrigger, rightTrigger);
     
     [_controllerSupport rumbleTriggers:controllerNumber leftTrigger:leftTrigger rightTrigger:rightTrigger];
 }
 
 - (void) setMotionEventState:(uint16_t)controllerNumber motionType:(uint8_t)motionType reportRateHz:(uint16_t)reportRateHz {
+    if (self.sessionEnding) return;
     Log(LOG_I, @"Set motion state on gamepad %d: %02x %u Hz", controllerNumber, motionType, reportRateHz);
     
     [_controllerSupport setMotionEventState:controllerNumber motionType:motionType reportRateHz:reportRateHz];
 }
 
 - (void) setControllerLed:(uint16_t)controllerNumber r:(uint8_t)r g:(uint8_t)g b:(uint8_t)b {
+    if (self.sessionEnding) return;
     Log(LOG_I, @"Set controller LED on gamepad %d: l%02x%02x%02x", controllerNumber, r, g, b);
     
     [_controllerSupport setControllerLed:controllerNumber r:r g:g b:b];
@@ -568,6 +752,7 @@
     }
     
     dispatch_async(dispatch_get_main_queue(), ^{
+        if (self.sessionEnding) return;
         switch (status) {
             case CONN_STATUS_OKAY:
                 [self updateOverlayText:nil];
@@ -617,11 +802,13 @@
 - (void) setHdrMode:(bool)enabled {
     Log(LOG_I, @"HDR is now: %s", enabled ? "active" : "inactive");
     dispatch_async(dispatch_get_main_queue(), ^{
+        if (self.sessionEnding) return;
         [self updatePreferredDisplayMode:YES];
     });
 }
 
 - (void) videoContentShown {
+    if (self.sessionEnding) return;
     [_spinner stopAnimating];
     [self.view setBackgroundColor:[UIColor blackColor]];
 }

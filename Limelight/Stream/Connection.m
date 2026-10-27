@@ -27,6 +27,10 @@
     char _appVersionString[32];
     char _gfeVersionString[32];
     char _rtspSessionUrl[128];
+    VideoDecoderRenderer *_renderer;
+    __weak id<ConnectionCallbacks> _connectionCallbacks;
+    BOOL _started; // Protected by initLock
+    dispatch_group_t _terminationGroup;
 }
 
 static NSLock* initLock;
@@ -371,22 +375,36 @@ void ClSetControllerLED(uint16_t controllerNumber, uint8_t r, uint8_t g, uint8_t
     [_callbacks setControllerLed:controllerNumber r:r g:g b:b];
 }
 
--(void) terminate
-{
-    // Interrupt any action blocking LiStartConnection(). This is
-    // thread-safe and done outside initLock on purpose, since we
-    // won't be able to acquire it if LiStartConnection is in
-    // progress.
-    LiInterruptConnection();
-    
-    // We dispatch this async to get out because this can be invoked
-    // on a thread inside common and we don't want to deadlock. It also avoids
-    // blocking on the caller's thread waiting to acquire initLock.
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-        [initLock lock];
-        LiStopConnection();
-        [initLock unlock];
-    });
+-(void) terminate {
+    [self terminateWithCompletion:nil];
+}
+
+-(void) terminateWithCompletion:(dispatch_block_t)completion {
+    @synchronized (self) {
+        if (!_terminationGroup) {
+            _terminationGroup = dispatch_group_create();
+            dispatch_group_enter(_terminationGroup);
+            [self cancel];
+            LiInterruptConnection();
+            // Never join common's worker threads on a callback or the UI thread.
+            dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+                [initLock lock];
+                if (self->_started) {
+                    LiStopConnection();
+                    renderer = nil;
+                    _callbacks = nil;
+                }
+                // Also handles cancellation before the decoder ever started.
+                [self->_renderer stop];
+                self->_renderer = nil;
+                [initLock unlock];
+                dispatch_group_leave(self->_terminationGroup);
+            });
+        }
+        if (completion) {
+            dispatch_group_notify(_terminationGroup, dispatch_get_main_queue(), completion);
+        }
+    }
 }
 
 -(id) initWithConfig:(StreamConfiguration*)config renderer:(VideoDecoderRenderer*)myRenderer connectionCallbacks:(id<ConnectionCallbacks>)callbacks
@@ -432,8 +450,8 @@ void ClSetControllerLED(uint16_t controllerNumber, uint8_t r, uint8_t g, uint8_t
     }
     _serverInfo.serverCodecModeSupport = config.serverCodecModeSupport;
 
-    renderer = myRenderer;
-    _callbacks = callbacks;
+    _renderer = myRenderer;
+    _connectionCallbacks = callbacks;
 
     LiInitializeStreamConfiguration(&_streamConfig);
     _streamConfig.width = config.width;
@@ -498,6 +516,13 @@ void ClSetControllerLED(uint16_t controllerNumber, uint8_t r, uint8_t g, uint8_t
 -(void) main
 {
     [initLock lock];
+    if (self.cancelled) {
+        [initLock unlock];
+        return;
+    }
+    _started = YES;
+    renderer = _renderer;
+    _callbacks = _connectionCallbacks;
     LiStartConnection(&_serverInfo,
                       &_streamConfig,
                       &_clCallbacks,

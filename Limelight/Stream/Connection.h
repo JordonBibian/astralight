@@ -27,6 +27,8 @@ typedef struct {
 
 -(id) initWithConfig:(StreamConfiguration*)config renderer:(VideoDecoderRenderer*)myRenderer connectionCallbacks:(id<ConnectionCallbacks>)callbacks;
 -(void) terminate;
+// Completion runs on the main queue after all decoder/network workers stop.
+-(void) terminateWithCompletion:(dispatch_block_t)completion;
 -(void) main;
 -(BOOL) getVideoStats:(video_stats_t*)stats;
 -(NSString*) getActiveCodecName;

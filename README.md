@@ -6,7 +6,7 @@ Astralight is an open source fork of [Moonlight for iOS/tvOS](https://github.com
 
 The iPhone and iPad app requires **iOS/iPadOS 27.0 or later**. Build it with Xcode 27 or later. Apple TV support is planned for later; the inherited tvOS target is outside the current iOS feature scope.
 
-**Native** is the default resolution mode. Each new stream uses the active device screen's native landscape pixel dimensions, independent of Display Zoom, safe-area insets, or an old saved resolution. Encoded dimensions are rounded to even pixels where required by 4:2:0 video. Restart a stream after changing displays or folding/unfolding to a different display size.
+**Native** is the default resolution mode. Each new stream uses the active device screen's native landscape pixel dimensions, independent of Display Zoom, safe-area insets, or an old saved resolution. Encoded dimensions are rounded to even pixels where required by 4:2:0 video. Folding or unfolding onto a different display automatically reloads the stream after the screen size settles. Astralight waits for the previous connection to shut down, then resumes the host session with the new dimensions and rebuilds input mapping and the MetalFX output. Expect a brief reconnect; the host game is not quit. Rotation and safe-area changes alone do not trigger a reload.
 
 **Upscaled (SDR)** is optional under Settings → Resolution. It requests approximately half the native width and height, decodes using VideoToolbox, and uses Apple's MetalFX spatial scaler to produce native-sized frames. This is spatial GPU upscaling, not a downloaded neural model. HDR is inactive in this mode; the HDR preference is retained for Native mode. Frame queues are bounded to avoid accumulating latency. If the GPU/decoder fails, Astralight requests a fresh keyframe and falls back to the standard display renderer for the remainder of the stream.
 
@@ -80,3 +80,9 @@ Astralight builds on the work of the [Moonlight project](https://moonlight-strea
 See the [Moonlight wiki](https://github.com/moonlight-stream/moonlight-docs/wiki) for general setup and troubleshooting. The [upstream Moonlight App Store listing](https://apps.apple.com/us/app/moonlight-game-streaming/id1000551566) distributes Moonlight, not this Astralight fork.
 
 See [LICENSE.txt](LICENSE.txt) for the GPLv3 license and App Store Distribution Exception.
+
+### Display-change regression checks
+
+In a Debug iOS build, launch with `--display-reload-self-test` to exercise native/upscaled fold and unfold, unchanged and invalid sizes, rapid fold reversal, size changes during shutdown, late callbacks, exit cancellation, and repeated shutdown while launch work is pending. It uses a fake stream transport and does not connect to a PC. Look for `PASS display reload` in the console.
+
+Use `--display-reload-ui-test` to test the actual Duo simulator's Closed/Open controls. The diagnostic shows the native size, requested stream size, and session count. Verified transitions are **2034 × 1398 → 2853 × 2007 → 2034 × 1398** native pixels, with **2854 × 2008** requested for the unfolded screen's even-dimension encoder requirement. These checks verify scene detection and reload lifecycle; a live host must still accept the requested resolution. Remove diagnostic arguments for normal use. All diagnostics are excluded from Release builds.

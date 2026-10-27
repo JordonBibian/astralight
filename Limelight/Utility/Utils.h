@@ -22,6 +22,7 @@ typedef NS_ENUM(int, State) {
 
 FOUNDATION_EXPORT NSString *const deviceName;
 FOUNDATION_EXPORT NSString *const AstralightSpatialUpscalingEnabled;
+FOUNDATION_EXPORT NSNotificationName const AstralightSceneGeometryDidChange;
 
 + (UIWindow *)windowForView:(UIView *)view;
 + (UIScreen *)screenForView:(UIView *)view;

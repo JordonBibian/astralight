@@ -28,6 +28,7 @@
      interactionDelegate:(id<UserInteractionDelegate>)interactionDelegate
                   config:(StreamConfiguration*)streamConfig;
 - (void) showOnScreenControls;
+- (void) cleanup;
 - (OnScreenControlsLevel) getCurrentOscState;
 
 #if !TARGET_OS_TV

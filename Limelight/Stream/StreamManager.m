@@ -19,12 +19,19 @@
 
 #include <Limelight.h>
 
+@interface StreamManager ()
+@property (atomic) BOOL stopRequested;
+@end
+
 @implementation StreamManager {
     StreamConfiguration* _config;
 
     UIView* _renderView;
-    id<ConnectionCallbacks> _callbacks;
+    __weak id<ConnectionCallbacks> _callbacks;
     Connection* _connection;
+    BOOL _stopping;
+    BOOL _stopped;
+    NSMutableArray<dispatch_block_t> *_stopCompletions;
 }
 
 - (id) initWithConfig:(StreamConfiguration*)config renderView:(UIView*)view connectionCallbacks:(id<ConnectionCallbacks>)callbacks {
@@ -38,6 +45,7 @@
 }
 
 - (void)main {
+    if (self.stopRequested || self.cancelled) return;
     [CryptoManager generateKeyPairUsingSSL];
     
     HttpManager* hMan = [[HttpManager alloc] initWithAddress:_config.host httpsPort:_config.httpsPort
@@ -46,6 +54,7 @@
     ServerInfoResponse* serverInfoResp = [[ServerInfoResponse alloc] init];
     [hMan executeRequestSynchronously:[HttpRequest requestForResponse:serverInfoResp withUrlRequest:[hMan newServerInfoRequest:false]
                                        fallbackError:401 fallbackRequest:[hMan newHttpServerInfoRequest]]];
+    if (self.stopRequested || self.cancelled) return;
     NSString* pairStatus = [serverInfoResp getStringTag:@"PairStatus"];
     NSString* appversion = [serverInfoResp getStringTag:@"appversion"];
     NSString* gfeVersion = [serverInfoResp getStringTag:@"GfeVersion"];
@@ -80,6 +89,7 @@
     _config.appVersion = appversion;
     _config.gfeVersion = gfeVersion;
     
+    if (self.stopRequested || self.cancelled) return;
     // resumeApp and launchApp handle calling launchFailed
     NSString* sessionUrl;
     if ([serverState hasSuffix:@"_SERVER_BUSY"]) {
@@ -94,11 +104,13 @@
         }
     }
     
+    if (self.stopRequested || self.cancelled) return;
     // Populate RTSP session URL from launch/resume response
     _config.rtspSessionUrl = sessionUrl;
     
     // Initializing the renderer must be done on the main thread
     dispatch_async(dispatch_get_main_queue(), ^{
+        if (self.stopRequested || self.cancelled) return;
         VideoDecoderRenderer* renderer = [[VideoDecoderRenderer alloc] initWithView:self->_renderView callbacks:self->_callbacks streamAspectRatio:(float)self->_config.width / (float)self->_config.height useFramePacing:self->_config.useFramePacing nativeSize:self->_config.nativeSize useSpatialUpscaling:self->_config.useSpatialUpscaling];
         self->_connection = [[Connection alloc] initWithConfig:self->_config renderer:renderer connectionCallbacks:self->_callbacks];
         NSOperationQueue* opQueue = [[NSOperationQueue alloc] init];
@@ -106,9 +118,46 @@
     });
 }
 
-- (void) stopStream
-{
-    [_connection terminate];
+- (void)stopStream {
+    [self stopStreamWithCompletion:nil];
+}
+
+- (void)stopStreamWithCompletion:(dispatch_block_t)completion {
+    self.stopRequested = YES;
+    [self cancel];
+    if (!NSThread.isMainThread) {
+        dispatch_async(dispatch_get_main_queue(), ^{ [self stopStreamWithCompletion:completion]; });
+        return;
+    }
+    if (_stopped) {
+        if (completion) completion();
+        return;
+    }
+    if (!_stopCompletions) _stopCompletions = [NSMutableArray array];
+    if (completion) [_stopCompletions addObject:completion];
+    if (_stopping) return;
+    _stopping = YES;
+    // Finish any in-flight HTTP request before reusing its configuration or
+    // resuming the host. A queued renderer creation checks cancelled as well.
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        [self waitUntilFinished];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (self->_connection) {
+                [self->_connection terminateWithCompletion:^{ [self finishStopping]; }];
+            } else {
+                [self finishStopping];
+            }
+        });
+    });
+}
+
+- (void)finishStopping {
+    _connection = nil;
+    _renderView = nil;
+    _stopped = YES;
+    NSArray<dispatch_block_t> *completions = [_stopCompletions copy];
+    [_stopCompletions removeAllObjects];
+    for (dispatch_block_t completion in completions) completion();
 }
 
 - (BOOL) launchApp:(HttpManager*)hMan receiveSessionUrl:(NSString**)sessionUrl {
