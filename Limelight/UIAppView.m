@@ -8,6 +8,9 @@
 
 #import "UIAppView.h"
 #import "AppAssetManager.h"
+#if !TARGET_OS_TV
+#import "AstralightTheme.h"
+#endif
 
 static const float REFRESH_CYCLE = 1.0f;
 
@@ -18,6 +21,11 @@ static const float REFRESH_CYCLE = 1.0f;
     UIImageView* _appImage;
     NSCache* _artCache;
     id<AppCallback> _callback;
+#if !TARGET_OS_TV
+    UILabel *_caption;
+    UIView *_artPanel;
+    CAGradientLayer *_artGradient;
+#endif
 }
 
 static UIImage* noImage;
@@ -37,7 +45,7 @@ static UIImage* noImage;
 #if TARGET_OS_TV
     self.frame = CGRectMake(0, 0, 200, 265);
 #else
-    self.frame = CGRectMake(0, 0, 150, 200);
+    self.frame = CGRectMake(0, 0, 180, 230);
 #endif
     
     [self setAlpha:app.hidden ? 0.4 : 1.0];
@@ -45,6 +53,23 @@ static UIImage* noImage;
     _appImage = [[UIImageView alloc] initWithFrame:self.frame];
     [_appImage setImage:noImage];
     [self addSubview:_appImage];
+#if !TARGET_OS_TV
+    ALStyleCard(self);
+    self.clipsToBounds = YES;
+    _artPanel = [[UIView alloc] init];
+    _artPanel.userInteractionEnabled = NO;
+    _artPanel.layer.cornerRadius = 14;
+    _artPanel.clipsToBounds = YES;
+    _artGradient = ALBackgroundLayer(_artPanel);
+    _artGradient.colors = @[(id)ALColor(0x294D88).CGColor, (id)ALColor(0x51367B).CGColor];
+    _artGradient.locations = nil;
+    [self insertSubview:_artPanel belowSubview:_appImage];
+    _appImage.contentMode = UIViewContentModeScaleAspectFit;
+    _appImage.clipsToBounds = YES;
+    _appImage.layer.cornerRadius = 14;
+    self.isAccessibilityElement = YES;
+    self.accessibilityTraits = UIAccessibilityTraitButton;
+#endif
     
     // Use UIContextMenuInteraction on iOS 13.0+ and a standard UILongPressGestureRecognizer
     // for tvOS devices and iOS prior to 13.0.
@@ -115,6 +140,41 @@ static UIImage* noImage;
 #endif
 
 - (void) updateAppImage {
+#if !TARGET_OS_TV
+    [_appLabel removeFromSuperview];
+    [_appOverlay removeFromSuperview];
+    [_caption removeFromSuperview];
+    UIImage *art = [_artCache objectForKey:_app];
+    if (!art) {
+        art = [UIImage imageWithContentsOfFile:[AppAssetManager boxArtPathForApp:_app]];
+        if (art) [_artCache setObject:art forKey:_app];
+    }
+    BOOL placeholder = !art || CGSizeEqualToSize(art.size, CGSizeMake(130, 180)) || CGSizeEqualToSize(art.size, CGSizeMake(628, 888));
+    if (placeholder) {
+        NSString *symbol = [_app.name.lowercaseString containsString:@"desktop"] ? @"desktopcomputer" : @"gamecontroller";
+        _appImage.image = [UIImage systemImageNamed:symbol withConfiguration:[UIImageSymbolConfiguration configurationWithPointSize:44 weight:UIImageSymbolWeightLight]];
+        _appImage.tintColor = ALAccentColor();
+        _appImage.contentMode = UIViewContentModeCenter;
+    } else {
+        _appImage.image = art;
+        _appImage.contentMode = UIViewContentModeScaleAspectFit;
+    }
+    _appLabel = ALLabel(17, UIFontWeightSemibold, ALTextColor());
+    _appLabel.text = _app.name;
+    _appLabel.lineBreakMode = NSLineBreakByTruncatingTail;
+    _caption = ALLabel(12, UIFontWeightRegular, ALSecondaryColor());
+    BOOL running = [_app.id isEqualToString:_app.host.currentGame];
+    _caption.text = running ? @"Running · Tap for options" : @"Start streaming";
+    _appOverlay = running ? [[UIImageView alloc] initWithImage:[UIImage systemImageNamed:@"play.circle.fill"]] : nil;
+    _appOverlay.tintColor = ALColor(0x77E2BC);
+    _appOverlay.contentMode = UIViewContentModeScaleAspectFit;
+    [self addSubview:_appLabel];
+    [self addSubview:_caption];
+    if (_appOverlay) [self addSubview:_appOverlay];
+    self.accessibilityLabel = [NSString stringWithFormat:@"%@, %@%@", _app.name, _caption.text, _app.hidden ? @", hidden" : @""];
+    self.accessibilityHint = @"Touch and hold for app options.";
+    [self setNeedsLayout];
+#else
     if (_appOverlay != nil) {
         [_appOverlay removeFromSuperview];
         _appOverlay = nil;
@@ -179,6 +239,7 @@ static UIImage* noImage;
     [self addSubview:_appLabel];
     [self addSubview:_appOverlay];
 #endif
+#endif
 }
 
 - (void) buttonSelected:(id)sender {
@@ -188,7 +249,27 @@ static UIImage* noImage;
     _appImage.layer.opacity = 1.0f;
 }
 
+#if !TARGET_OS_TV
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    [self positionSubviews];
+}
+#endif
+
 - (void) positionSubviews {
+#if !TARGET_OS_TV
+    CGFloat width = self.bounds.size.width;
+    CGFloat height = self.bounds.size.height;
+    _artPanel.frame = CGRectMake(10, 10, width - 20, height - 86);
+    _appImage.frame = _artPanel.frame;
+    _appLabel.frame = CGRectMake(14, height - 65, width - 28, 26);
+    _caption.frame = CGRectMake(14, height - 34, width - 28, 20);
+    _appOverlay.frame = CGRectMake(width - 42, 18, 26, 26);
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    _artGradient.frame = _artPanel.bounds;
+    [CATransaction commit];
+#else
     CGFloat padding = 5.f;
     CGSize frameSize = _appImage.frame.size;
     CGPoint center = _appImage.center;
@@ -208,6 +289,7 @@ static UIImage* noImage;
         _appOverlay.frame = CGRectMake(0, 0, frameSize.width / 2, frameSize.width / 2);
         _appOverlay.center = center;
     }
+#endif
 }
 
 - (void) updateLoop {
@@ -225,7 +307,9 @@ static UIImage* noImage;
     // Show no shadow for hidden apps. Because we adjust the opacity of the
     // cells for hidden apps, it makes them look bad when the shadow draws
     // through the app tile.
+#if TARGET_OS_TV
     self.superview.layer.shadowOpacity = _app.hidden ? 0.0f : 0.5f;
+#endif
     
     // Update opacity if neccessary
     [self setAlpha:_app.hidden ? 0.4 : 1.0];

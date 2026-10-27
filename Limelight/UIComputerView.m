@@ -7,6 +7,9 @@
 //
 
 #import "UIComputerView.h"
+#if !TARGET_OS_TV
+#import "AstralightTheme.h"
+#endif
 
 @implementation UIComputerView {
     TemporaryHost* _host;
@@ -16,15 +19,17 @@
     UIActivityIndicatorView* _hostSpinner;
     id<HostCallback> _callback;
     CGSize _labelSize;
+#if !TARGET_OS_TV
+    UILabel *_hostStatus;
+    UILabel *_hostAction;
+    UIView *_statusDot;
+#endif
 }
 static const float REFRESH_CYCLE = 2.0f;
 
 #if TARGET_OS_TV
 static const int ITEM_PADDING = 50;
 static const int LABEL_DY = 40;
-#else
-static const int ITEM_PADDING = 0;
-static const int LABEL_DY = 20;
 #endif
 
 - (id) init {
@@ -33,11 +38,7 @@ static const int LABEL_DY = 20;
 #if TARGET_OS_TV
     self.frame = CGRectMake(0, 0, 400, 400);
 #else
-    if (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad) {
-        self.frame = CGRectMake(0, 0, 200, 200);
-    } else {
-        self.frame = CGRectMake(0, 0, 100, 100);
-    }
+    self.frame = CGRectMake(0, 0, 252, 190);
 #endif
     
     _hostIcon = [[UIImageView alloc] initWithFrame:self.frame];
@@ -77,7 +78,23 @@ static const int LABEL_DY = 20;
 #else
     [self addSubview:_hostOverlay];
     [self addSubview:_hostSpinner];
-    
+    ALStyleCard(self);
+    self.layer.shadowOpacity = 0;
+    _hostIcon.image = [UIImage systemImageNamed:@"desktopcomputer"];
+    _hostIcon.tintColor = ALAccentColor();
+    _hostIcon.contentMode = UIViewContentModeScaleAspectFit;
+    _hostLabel.font = [UIFont systemFontOfSize:20 weight:UIFontWeightSemibold];
+    _hostLabel.lineBreakMode = NSLineBreakByTruncatingTail;
+    _hostStatus = ALLabel(14, UIFontWeightRegular, ALSecondaryColor());
+    _hostAction = ALLabel(14, UIFontWeightSemibold, ALAccentColor());
+    _statusDot = [[UIView alloc] init];
+    _statusDot.layer.cornerRadius = 4;
+    [self addSubview:_hostStatus];
+    [self addSubview:_hostAction];
+    [self addSubview:_statusDot];
+    self.isAccessibilityElement = YES;
+    self.accessibilityTraits = UIAccessibilityTraitButton;
+
     if (@available(iOS 13.4.1, *)) {
         // Allow the button style to change when moused over
         self.pointerInteractionEnabled = YES;
@@ -108,6 +125,16 @@ static const int LABEL_DY = 20;
     [_hostLabel sizeToFit];
     
     [_hostOverlay setImage:[UIImage imageNamed:@"AddOverlayIcon"]];
+#if !TARGET_OS_TV
+    _hostLabel.text = @"Add a computer";
+    _hostIcon.image = [UIImage systemImageNamed:@"plus.circle"];
+    _hostOverlay.image = nil;
+    _hostStatus.text = @"Connect using an IP address";
+    _hostAction.text = @"Add manually  →";
+    _statusDot.hidden = YES;
+    self.accessibilityLabel = @"Add a computer manually";
+    self.accessibilityIdentifier = @"addComputerButton";
+#endif
     
     [self updateBounds];
         
@@ -147,7 +174,24 @@ static const int LABEL_DY = 20;
     }
 }
 
+#if !TARGET_OS_TV
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    CGFloat width = self.bounds.size.width;
+    _hostIcon.frame = CGRectMake(20, 20, 48, 40);
+    _hostOverlay.frame = CGRectMake(width - 48, 24, 24, 24);
+    _hostSpinner.center = CGPointMake(width - 34, 36);
+    _statusDot.frame = CGRectMake(width - 34, 32, 8, 8);
+    _hostLabel.frame = CGRectMake(20, 80, width - 40, 26);
+    _hostStatus.frame = CGRectMake(20, 111, width - 40, 22);
+    _hostAction.frame = CGRectMake(20, 151, width - 40, 22);
+}
+#endif
+
 - (void) updateBounds {
+#if !TARGET_OS_TV
+    [self setNeedsLayout];
+#else
     float x = FLT_MAX;
     float y = FLT_MAX;
     float width = 0;
@@ -170,6 +214,7 @@ static const int LABEL_DY = 20;
         LABEL_DY / 2;
     
     self.bounds = CGRectMake(x - ITEM_PADDING, y - ITEM_PADDING, width + 2 * ITEM_PADDING, height + 2 * ITEM_PADDING);
+#endif
 }
 
 - (void) updateContentsForHost:(TemporaryHost*)host {
@@ -194,6 +239,24 @@ static const int LABEL_DY = 20;
         [_hostSpinner startAnimating];
     }
     
+#if !TARGET_OS_TV
+    _hostOverlay.image = nil;
+    _statusDot.hidden = host.state == StateUnknown;
+    if (host.state == StateOnline) {
+        _statusDot.backgroundColor = ALColor(0x77E2BC);
+        _hostStatus.text = host.pairState == PairStatePaired ? @"Online · Paired" : @"Online · Ready to pair";
+        _hostAction.text = host.pairState == PairStatePaired ? @"Open library  →" : @"Pair computer  →";
+    } else if (host.state == StateOffline) {
+        _statusDot.backgroundColor = ALColor(0xF3BE7C);
+        _hostStatus.text = @"Offline";
+        _hostAction.text = @"Wake or manage  →";
+    } else {
+        _hostStatus.text = @"Checking connection…";
+        _hostAction.text = @"Please wait";
+    }
+    self.accessibilityLabel = [NSString stringWithFormat:@"%@, %@", _hostLabel.text, _hostStatus.text];
+    self.accessibilityHint = @"Touch and hold for computer options.";
+#endif
     [self updateBounds];
 }
 

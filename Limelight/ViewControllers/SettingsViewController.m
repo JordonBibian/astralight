@@ -11,6 +11,8 @@
 #import "DataManager.h"
 #import "Utils.h"
 #import "SpatialVideoDecoder.h"
+#import "SWRevealViewController.h"
+#import "../AstralightTheme.h"
 
 #import <VideoToolbox/VideoToolbox.h>
 #import <AVFoundation/AVFoundation.h>
@@ -18,6 +20,11 @@
 @implementation SettingsViewController {
     NSInteger _bitrate;
     BOOL _hdrSupported;
+    CAGradientLayer *_settingsGradient;
+    UIStackView *_settingsStack;
+    NSLayoutConstraint *_settingsLeading;
+    NSLayoutConstraint *_settingsTrailing;
+
 }
 
 @dynamic overrideUserInterfaceStyle;
@@ -66,51 +73,147 @@ static const int bitrateTable[] = {
     return i - 1;
 }
 
-// This view is rooted at a ScrollView. To make it scrollable,
-// we'll update content size here.
--(void)viewDidLayoutSubviews {
+- (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
     [self updateResolutionDisplayViewText];
-    CGFloat highestViewY = 0;
-    
-    // Enumerate the scroll view's subviews looking for the
-    // highest view Y value to set our scroll view's content
-    // size.
-    for (UIView* view in self.scrollView.subviews) {
-        // UIScrollViews have 2 default child views
-        // which represent the horizontal and vertical scrolling
-        // indicators. Ignore any views we don't recognize.
-        if (![view isKindOfClass:[UILabel class]] &&
-            ![view isKindOfClass:[UISegmentedControl class]] &&
-            ![view isKindOfClass:[UISlider class]]) {
-            continue;
-        }
-        
-        CGFloat currentViewY = view.frame.origin.y + view.frame.size.height;
-        if (currentViewY > highestViewY) {
-            highestViewY = currentViewY;
-        }
-    }
-    
-    // Add a bit of padding so the view doesn't end right at the button of the display
-    self.scrollView.contentSize = CGSizeMake(self.scrollView.contentSize.width,
-                                             highestViewY + 20);
+    _settingsLeading.constant = MAX(24, self.view.safeAreaInsets.left + 16);
+    // The reveal container includes an overdraw region covered by the library.
+    _settingsTrailing.constant = -(24 + self.revealViewController.rearViewRevealOverdraw);
+    [self updateSettingsGradient];
 }
 
-// Adjust the subviews for the safe area on the iPhone X.
+- (void)updateSettingsGradient {
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    _settingsGradient.frame = self.scrollView.bounds;
+    [CATransaction commit];
+}
+
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView {
+    [self updateSettingsGradient];
+}
+
 - (void)viewSafeAreaInsetsDidChange {
     [super viewSafeAreaInsetsDidChange];
-    
-    if (@available(iOS 11.0, *)) {
-        for (UIView* view in self.view.subviews) {
-            // HACK: The official safe area is much too large for our purposes
-            // so we'll just use the presence of any safe area to indicate we should
-            // pad by 20.
-            if (self.view.safeAreaInsets.left >= 20 || self.view.safeAreaInsets.right >= 20) {
-                view.frame = CGRectMake(view.frame.origin.x + 20, view.frame.origin.y, view.frame.size.width, view.frame.size.height);
-            }
-        }
+    [self.view setNeedsLayout];
+}
+
+- (void)closeSettings {
+    [self saveSettings];
+    [self.revealViewController revealToggleAnimated:YES];
+}
+
+- (UIView *)settingWithTitle:(NSString *)title control:(UIView *)control {
+    UILabel *label = ALLabel(15, UIFontWeightSemibold, ALTextColor());
+    label.text = title;
+    label.numberOfLines = 0;
+    control.translatesAutoresizingMaskIntoConstraints = NO;
+    control.accessibilityLabel = title;
+    [control.heightAnchor constraintGreaterThanOrEqualToConstant:44].active = YES;
+    if ([control isKindOfClass:UISegmentedControl.class]) {
+        UISegmentedControl *segments = (UISegmentedControl *)control;
+        segments.backgroundColor = ALColor(0x131F3B);
+        segments.selectedSegmentTintColor = ALColor(0x536AC1);
+        [segments setTitleTextAttributes:@{NSForegroundColorAttributeName: ALSecondaryColor(), NSFontAttributeName:[UIFont systemFontOfSize:13 weight:UIFontWeightMedium]} forState:UIControlStateNormal];
+        [segments setTitleTextAttributes:@{NSForegroundColorAttributeName: UIColor.whiteColor} forState:UIControlStateSelected];
+        [segments setTitleTextAttributes:@{NSForegroundColorAttributeName: ALColor(0x7885A0)} forState:UIControlStateDisabled];
     }
+    UIStackView *row = [[UIStackView alloc] initWithArrangedSubviews:@[label, control]];
+    row.axis = UILayoutConstraintAxisVertical;
+    row.spacing = 10;
+    return row;
+}
+
+- (void)addSettingsSection:(NSString *)title rows:(NSArray<UIView *> *)rows {
+    UILabel *heading = ALLabel(18, UIFontWeightBold, ALTextColor());
+    heading.text = title;
+    heading.accessibilityTraits = UIAccessibilityTraitHeader;
+    NSMutableArray<UIView *> *contents = [NSMutableArray arrayWithObject:heading];
+    [contents addObjectsFromArray:rows];
+    UIStackView *card = [[UIStackView alloc] initWithArrangedSubviews:contents];
+    card.axis = UILayoutConstraintAxisVertical;
+    card.spacing = 22;
+    card.layoutMargins = UIEdgeInsetsMake(20, 20, 20, 20);
+    card.layoutMarginsRelativeArrangement = YES;
+    ALStyleCard(card);
+    [_settingsStack addArrangedSubview:card];
+}
+
+- (void)configureSettingsAppearance {
+    // Retain and reuse the storyboard controls, including their existing actions.
+    for (UIView *view in self.scrollView.subviews.copy) [view removeFromSuperview];
+    self.scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
+    self.scrollView.showsHorizontalScrollIndicator = NO;
+    self.scrollView.indicatorStyle = UIScrollViewIndicatorStyleWhite;
+    self.scrollView.delegate = self;
+    self.scrollView.tintColor = ALAccentColor();
+    _settingsGradient = ALBackgroundLayer(self.scrollView);
+    _settingsStack = [[UIStackView alloc] init];
+    _settingsStack.axis = UILayoutConstraintAxisVertical;
+    _settingsStack.spacing = 20;
+    _settingsStack.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.scrollView addSubview:_settingsStack];
+    _settingsLeading = [_settingsStack.leadingAnchor constraintEqualToAnchor:self.scrollView.contentLayoutGuide.leadingAnchor constant:24];
+    _settingsTrailing = [_settingsStack.trailingAnchor constraintEqualToAnchor:self.scrollView.frameLayoutGuide.trailingAnchor constant:-24];
+    [NSLayoutConstraint activateConstraints:@[
+        _settingsLeading, _settingsTrailing,
+        [_settingsStack.topAnchor constraintEqualToAnchor:self.scrollView.contentLayoutGuide.topAnchor constant:28],
+        [_settingsStack.bottomAnchor constraintEqualToAnchor:self.scrollView.contentLayoutGuide.bottomAnchor constant:-40],
+        [self.scrollView.contentLayoutGuide.widthAnchor constraintEqualToAnchor:self.scrollView.frameLayoutGuide.widthAnchor]
+    ]];
+    UILabel *title = ALLabel(30, UIFontWeightBold, ALTextColor());
+    title.text = @"Settings";
+    title.accessibilityTraits = UIAccessibilityTraitHeader;
+    UIButton *done = [UIButton buttonWithType:UIButtonTypeSystem];
+    done.configuration = ALButtonStyle(@"Done", @"checkmark");
+    done.accessibilityIdentifier = @"settingsDoneButton";
+    [done addTarget:self action:@selector(closeSettings) forControlEvents:UIControlEventTouchUpInside];
+    [done setContentHuggingPriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];
+    UIStackView *header = [[UIStackView alloc] initWithArrangedSubviews:@[title, done]];
+    header.alignment = UIStackViewAlignmentCenter;
+    header.spacing = 16;
+    [_settingsStack addArrangedSubview:header];
+    UILabel *subtitle = ALLabel(14, UIFontWeightRegular, ALSecondaryColor());
+    subtitle.text = @"Make the stream yours. Changes apply to your next session.";
+    subtitle.numberOfLines = 0;
+    [_settingsStack addArrangedSubview:subtitle];
+
+    self.resolutionDisplayView.backgroundColor = ALColor(0x16233F);
+    self.resolutionDisplayView.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.resolutionDisplayView.heightAnchor constraintEqualToConstant:58].active = YES;
+    self.bitrateLabel.font = [UIFont systemFontOfSize:15 weight:UIFontWeightSemibold];
+    self.bitrateLabel.textColor = ALTextColor();
+    self.bitrateSlider.minimumTrackTintColor = ALColor(0x8AA6FF);
+    self.bitrateSlider.maximumTrackTintColor = ALColor(0x3B486B);
+    self.bitrateSlider.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.bitrateSlider.heightAnchor constraintEqualToConstant:44].active = YES;
+    UIStackView *bitrate = [[UIStackView alloc] initWithArrangedSubviews:@[self.bitrateLabel, self.bitrateSlider]];
+    bitrate.axis = UILayoutConstraintAxisVertical;
+    bitrate.spacing = 8;
+
+    [self addSettingsSection:@"Video" rows:@[
+        [self settingWithTitle:@"Resolution" control:self.resolutionSelector], self.resolutionDisplayView,
+        [self settingWithTitle:@"Frame rate" control:self.framerateSelector], bitrate]];
+    [self addSettingsSection:@"Picture & performance" rows:@[
+        [self settingWithTitle:@"Preferred codec" control:self.codecSelector],
+        [self settingWithTitle:@"HDR" control:self.hdrSelector],
+        [self settingWithTitle:@"Frame pacing" control:self.framePacingSelector],
+        [self settingWithTitle:@"Optimize game settings" control:self.optimizeSettingsSelector]]];
+    [self addSettingsSection:@"Controls" rows:@[
+        [self settingWithTitle:@"Touch mode" control:self.touchModeSelector],
+        [self settingWithTitle:@"On-screen controls" control:self.onscreenControlSelector],
+        [self settingWithTitle:@"Multiple controllers" control:self.multiControllerSelector],
+        [self settingWithTitle:@"Swap A/B and X/Y" control:self.swapABXYButtonsSelector],
+        [self settingWithTitle:@"Citrix X1 mouse" control:self.btMouseSelector]]];
+    [self addSettingsSection:@"Audio & diagnostics" rows:@[
+        [self settingWithTitle:@"Play audio on PC" control:self.audioOnPCSelector],
+        [self settingWithTitle:@"Statistics overlay" control:self.statsOverlaySelector]]];
+    UIButton *doneFooter = [UIButton buttonWithType:UIButtonTypeSystem];
+    doneFooter.configuration = ALButtonStyle(@"Done", @"checkmark");
+    doneFooter.accessibilityIdentifier = @"settingsDoneFooterButton";
+    [doneFooter.heightAnchor constraintGreaterThanOrEqualToConstant:48].active = YES;
+    [doneFooter addTarget:self action:@selector(closeSettings) forControlEvents:UIControlEventTouchUpInside];
+    [_settingsStack addArrangedSubview:doneFooter];
 }
 
 - (void)viewDidLoad {
@@ -221,6 +324,7 @@ static const int bitrateTable[] = {
     [self.bitrateSlider setMaximumValue:(sizeof(bitrateTable) / sizeof(*bitrateTable)) - 1];
     [self.bitrateSlider setValue:[self getSliderValueForBitrate:_bitrate] animated:YES];
     [self.bitrateSlider addTarget:self action:@selector(bitrateSliderMoved) forControlEvents:UIControlEventValueChanged];
+    [self configureSettingsAppearance];
     [self updateBitrateText];
     [self updateResolutionDisplayViewText];
 }
@@ -308,6 +412,7 @@ static const int bitrateTable[] = {
     label.numberOfLines = 2;
     label.textAlignment = NSTextAlignmentCenter;
     label.font = [UIFont systemFontOfSize:12];
+    label.textColor = ALSecondaryColor();
     label.adjustsFontSizeToFitWidth = YES;
     label.text = upscaling ?
         [NSString stringWithFormat:@"%.0f × %.0f → %.0f × %.0f\nMetalFX upscaling • SDR", inputSize.width, inputSize.height, nativeSize.width, nativeSize.height] :

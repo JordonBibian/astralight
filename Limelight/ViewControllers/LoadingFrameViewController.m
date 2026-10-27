@@ -8,15 +8,49 @@
 
 #import "LoadingFrameViewController.h"
 #import "Utils.h"
+#if !TARGET_OS_TV
+#import "../AstralightTheme.h"
+#endif
 
 @implementation LoadingFrameViewController {
     BOOL presented;
+#if !TARGET_OS_TV
+    UIView *_connectionCard;
+#endif
 };
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+#if !TARGET_OS_TV
+    self.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
+    self.view.backgroundColor = [ALColor(0x0B142B) colorWithAlphaComponent:0.78];
+    _connectionCard = [[UIView alloc] init];
+    ALStyleCard(_connectionCard);
+    _connectionCard.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:_connectionCard];
+    UIActivityIndicatorView *spinner = self.loadingSpinner;
+    [_connectionCard addSubview:spinner];
+    spinner.translatesAutoresizingMaskIntoConstraints = NO;
+    spinner.color = ALAccentColor();
+    [spinner startAnimating];
+    UILabel *label = ALLabel(18, UIFontWeightSemibold, ALTextColor());
+    label.text = @"Connecting…";
+    label.translatesAutoresizingMaskIntoConstraints = NO;
+    [_connectionCard addSubview:label];
+    [NSLayoutConstraint activateConstraints:@[
+        [_connectionCard.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
+        [_connectionCard.centerYAnchor constraintEqualToAnchor:self.view.centerYAnchor],
+        [_connectionCard.widthAnchor constraintEqualToConstant:240],
+        [_connectionCard.heightAnchor constraintEqualToConstant:140],
+        [spinner.centerXAnchor constraintEqualToAnchor:_connectionCard.centerXAnchor],
+        [spinner.topAnchor constraintEqualToAnchor:_connectionCard.topAnchor constant:28],
+        [label.centerXAnchor constraintEqualToAnchor:_connectionCard.centerXAnchor],
+        [label.bottomAnchor constraintEqualToAnchor:_connectionCard.bottomAnchor constant:-24]
+    ]];
+#else
     // center the loading spinner
     self.loadingSpinner.center = CGPointMake(self.view.frame.size.width / 2, self.view.frame.size.height / 2);
+#endif
 }
 
 - (UIViewController*) activeViewController {

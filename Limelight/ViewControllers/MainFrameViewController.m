@@ -32,6 +32,7 @@
 
 #if !TARGET_OS_TV
 #import "SettingsViewController.h"
+#import "../AstralightTheme.h"
 #else
 #import <sys/utsname.h>
 #endif
@@ -56,6 +57,17 @@
     NSArray* _sortedAppList;
     NSCache* _boxArtCache;
     bool _background;
+#if !TARGET_OS_TV
+    CAGradientLayer *_backgroundGradient;
+    UIView *_libraryHeader;
+    UIView *_topBar;
+    UIStackView *_brandView;
+    UIButton *_documentationControl;
+    UIButton *_settingsControl;
+    UILabel *_libraryTitle;
+    UILabel *_librarySubtitle;
+    UIButton *_libraryBackButton;
+#endif
 #if TARGET_OS_TV
     UITapGestureRecognizer* _menuRecognizer;
 #endif
@@ -121,17 +133,26 @@ static NSMutableSet* hostList;
 
 - (void)disableUpButton {
 #if !TARGET_OS_TV
-    [self->_upButton setTitle:nil];
+    _libraryBackButton.hidden = YES;
 #endif
 }
 
 - (void)enableUpButton {
 #if !TARGET_OS_TV
-    [self->_upButton setTitle:@"Select New Host"];
+    _libraryBackButton.hidden = NO;
 #endif
 }
 
 - (void)updateTitle {
+#if !TARGET_OS_TV
+    self.title = nil;
+    _libraryTitle.text = _selectedHost ? @"Your library" : @"Your computers";
+    _librarySubtitle.text = _selectedHost ?
+        [NSString stringWithFormat:@"%@ · Choose an app to start streaming.", _selectedHost.name] :
+        (hostList.count ? @"Choose a computer to play. Touch and hold for more options." :
+                         @"Searching your network. You can also add a computer manually.");
+    [self.view setNeedsLayout];
+#else
     if (_selectedHost != nil) {
         self.title = _selectedHost.name;
     }
@@ -141,6 +162,7 @@ static NSMutableSet* hostList;
     else {
         self.title = @"Select Host";
     }
+#endif
 }
 
 - (void)alreadyPaired {
@@ -307,6 +329,7 @@ static NSMutableSet* hostList;
     
     [self.collectionView reloadData];
     [self.view addSubview:hostScrollView];
+    [self.view setNeedsLayout];
 }
 
 - (void) receivedAssetForApp:(TemporaryApp*)app {
@@ -901,10 +924,32 @@ static NSMutableSet* hostList;
         [self documentationActionWithTitle:@"Moonlight Troubleshooting" symbol:@"wrench.and.screwdriver"
                                        url:@"https://github.com/moonlight-stream/moonlight-docs/wiki/Troubleshooting"]
     ]];
-    UIBarButtonItem *documentation = [[UIBarButtonItem alloc] initWithTitle:@"Documentation" menu:menu];
-    documentation.accessibilityIdentifier = @"documentationButton";
-    documentation.accessibilityHint = @"Choose an official Apollo or Moonlight guide to open in your browser.";
-    self.navigationItem.leftBarButtonItems = @[self.settingsButton, documentation];
+    _topBar = [[UIView alloc] init];
+    _documentationControl = [UIButton buttonWithType:UIButtonTypeSystem];
+    _documentationControl.configuration = ALButtonStyle(@"Documentation", @"book");
+    _documentationControl.menu = menu;
+    _documentationControl.showsMenuAsPrimaryAction = YES;
+    _documentationControl.accessibilityIdentifier = @"documentationButton";
+    _documentationControl.accessibilityHint = @"Choose an official Apollo or Moonlight guide to open in your browser.";
+    _settingsControl = [UIButton buttonWithType:UIButtonTypeSystem];
+    _settingsControl.configuration = ALButtonStyle(nil, @"gearshape");
+    _settingsControl.accessibilityLabel = @"Settings";
+    _settingsControl.accessibilityIdentifier = @"settingsButton";
+    [_settingsControl addTarget:self.revealViewController action:@selector(revealToggle:) forControlEvents:UIControlEventTouchUpInside];
+    UIImageView *star = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"AstralightMark"]];
+    star.tintColor = ALAccentColor();
+    star.contentMode = UIViewContentModeScaleAspectFit;
+    [star.widthAnchor constraintEqualToConstant:24].active = YES;
+    UILabel *brand = ALLabel(22, UIFontWeightBold, ALTextColor());
+    brand.text = @"Astralight";
+    _brandView = [[UIStackView alloc] initWithArrangedSubviews:@[star, brand]];
+    _brandView.spacing = 8;
+    _brandView.isAccessibilityElement = YES;
+    _brandView.accessibilityLabel = @"Astralight";
+    [_topBar addSubview:_brandView];
+    [_topBar addSubview:_documentationControl];
+    [_topBar addSubview:_settingsControl];
+    [self.collectionView addSubview:_topBar];
 }
 
 - (void)revealController:(SWRevealViewController *)revealController didMoveToPosition:(FrontViewPosition)position {
@@ -939,20 +984,93 @@ static NSMutableSet* hostList;
     [_loadingFrame dismissLoadingFrame:completion];
 }
 
-- (void)adjustScrollViewForSafeArea:(UIScrollView*)view {
-    if (@available(iOS 11.0, *)) {
-        if (self.view.safeAreaInsets.left >= 20 || self.view.safeAreaInsets.right >= 20) {
-            view.contentInset = UIEdgeInsetsMake(0, 20, 0, 20);
-        }
-    }
+#if !TARGET_OS_TV
+- (void)configureLibraryAppearance {
+    self.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
+    self.revealViewController.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
+    self.view.tintColor = ALAccentColor();
+    [self.navigationController setNavigationBarHidden:YES animated:NO];
+
+    UIView *background = [[UIView alloc] initWithFrame:self.collectionView.bounds];
+    _backgroundGradient = ALBackgroundLayer(background);
+    self.collectionView.backgroundView = background;
+    self.collectionView.backgroundColor = ALColor(0x141D3C);
+    self.collectionView.alwaysBounceVertical = YES;
+    self.collectionView.showsVerticalScrollIndicator = NO;
+
+    _libraryHeader = [[UIView alloc] init];
+    _libraryTitle = ALLabel(30, UIFontWeightBold, ALTextColor());
+    _libraryTitle.accessibilityTraits = UIAccessibilityTraitHeader;
+    _librarySubtitle = ALLabel(14, UIFontWeightRegular, ALSecondaryColor());
+    _librarySubtitle.numberOfLines = 2;
+    _libraryBackButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    _libraryBackButton.configuration = ALButtonStyle(@"Computers", @"chevron.left");
+    _libraryBackButton.accessibilityIdentifier = @"computersButton";
+    [_libraryBackButton addTarget:self action:@selector(showHostSelectionView) forControlEvents:UIControlEventTouchUpInside];
+    [_libraryHeader addSubview:_libraryTitle];
+    [_libraryHeader addSubview:_librarySubtitle];
+    [_libraryHeader addSubview:_libraryBackButton];
+    [self.collectionView addSubview:_libraryHeader];
 }
 
-// Adjust the subviews for the safe area on the iPhone X.
+- (void)layoutComputerCards {
+    CGFloat x = 0;
+    CGFloat width = MIN(252, CGRectGetWidth(hostScrollView.bounds));
+    for (UIView *card in hostScrollView.subviews) {
+        if (![card isKindOfClass:UIComputerView.class]) continue;
+        card.frame = CGRectMake(x, 0, width, 190);
+        x += width + 16;
+    }
+    hostScrollView.contentSize = CGSizeMake(MAX(0, x - 16), 214);
+}
+
+- (void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+    // Automatic scroll insets may omit a non-scrolling axis. Use the actual
+    // safe area for the header and horizontal computer picker as well.
+    UIEdgeInsets safe = self.view.safeAreaInsets;
+    CGFloat left = safe.left + 24;
+    CGFloat width = MAX(240, self.view.bounds.size.width - left - safe.right - 24);
+    CGFloat top = MAX(0, safe.top - self.collectionView.adjustedContentInset.top);
+    _topBar.frame = CGRectMake(left, top + 12, width, 48);
+    _brandView.frame = CGRectMake(0, 4, MIN(190, width - 250), 40);
+    _documentationControl.frame = CGRectMake(width - 248, 0, 190, 48);
+    _settingsControl.frame = CGRectMake(width - 48, 0, 48, 48);
+    _libraryHeader.frame = CGRectMake(left, top + 84, width, 92);
+    CGFloat backWidth = _libraryBackButton.hidden ? 0 : 144;
+    _libraryTitle.frame = CGRectMake(0, 0, width - backWidth, 40);
+    _libraryTitle.adjustsFontSizeToFitWidth = YES;
+    _libraryTitle.minimumScaleFactor = 0.75;
+    _librarySubtitle.frame = CGRectMake(0, 47, width, 42);
+    _libraryBackButton.frame = CGRectMake(width - 138, 0, 138, 44);
+
+    UICollectionViewFlowLayout *layout = (UICollectionViewFlowLayout *)self.collectionView.collectionViewLayout;
+    NSInteger columns = MAX(2, (NSInteger)floor((width + 16) / 180));
+    CGFloat itemWidth = floor((width - (columns - 1) * 16) / columns);
+    CGSize itemSize = CGSizeMake(itemWidth, floor(itemWidth * 0.8) + 86);
+    UIEdgeInsets insets = UIEdgeInsetsMake(192, 24, 32, 24);
+    if (!CGSizeEqualToSize(layout.itemSize, itemSize) || !UIEdgeInsetsEqualToEdgeInsets(layout.sectionInset, insets)) {
+        layout.itemSize = itemSize;
+        layout.sectionInset = insets;
+        layout.sectionInsetReference = UICollectionViewFlowLayoutSectionInsetFromSafeArea;
+        layout.minimumLineSpacing = 20;
+        layout.minimumInteritemSpacing = 16;
+        [layout invalidateLayout];
+    }
+    hostScrollView.frame = CGRectMake(left, top + 192, width, MAX(60, self.view.bounds.size.height - top - 192 - safe.bottom - 24));
+    [self layoutComputerCards];
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    _backgroundGradient.frame = self.collectionView.backgroundView.bounds;
+    [CATransaction commit];
+    // Leave a visible strip of the library beside the settings panel.
+    self.revealViewController.rearViewRevealWidth = MIN(510, self.view.bounds.size.width - 72);
+}
+#endif
+
 - (void)viewSafeAreaInsetsDidChange {
     [super viewSafeAreaInsetsDidChange];
-    
-    [self adjustScrollViewForSafeArea:self.collectionView];
-    [self adjustScrollViewForSafeArea:self->hostScrollView];
+    [self.view setNeedsLayout];
 }
 
 - (void)viewDidLoad
@@ -964,6 +1082,7 @@ static NSMutableSet* hostList;
     [_settingsButton setTarget:self.revealViewController];
     [_settingsButton setAction:@selector(revealToggle:)];
     [self addDocumentationButton];
+    [self configureLibraryAppearance];
     
     // Set the host name button action. When it's tapped, it'll show the host selection view.
     [_upButton setTarget:self];
@@ -1019,6 +1138,10 @@ static NSMutableSet* hostList;
     hostScrollView.frame = CGRectMake(0, self.navigationController.navigationBar.frame.origin.y + self.navigationController.navigationBar.frame.size.height, self.view.frame.size.width, self.view.frame.size.height / 2);
     [hostScrollView setShowsHorizontalScrollIndicator:NO];
     hostScrollView.delaysContentTouches = NO;
+#if !TARGET_OS_TV
+    hostScrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
+    hostScrollView.showsVerticalScrollIndicator = NO;
+#endif
     
     self.collectionView.delaysContentTouches = NO;
     self.collectionView.allowsMultipleSelection = NO;
@@ -1137,13 +1260,19 @@ static NSMutableSet* hostList;
     [[self revealViewController] setPrimaryViewController:self];
 #endif
     
+#if TARGET_OS_TV
     [self.navigationController setNavigationBarHidden:NO animated:YES];
+#else
+    [self.navigationController setNavigationBarHidden:YES animated:NO];
+#endif
     
+#if TARGET_OS_TV
     // Hide 1px border line
     UIImage* fakeImage = [[UIImage alloc] init];
     [self.navigationController.navigationBar setShadowImage:fakeImage];
     [self.navigationController.navigationBar setBackgroundImage:fakeImage forBarPosition:UIBarPositionAny barMetrics:UIBarMetricsDefault];
     
+#endif
     // Check for a pending shortcut action when appearing
     [self handlePendingShortcutAction];
     
@@ -1161,6 +1290,9 @@ static NSMutableSet* hostList;
 - (void)viewWillAppear:(BOOL)animated
 {
     [super viewWillAppear:animated];
+#if !TARGET_OS_TV
+    [self.navigationController setNavigationBarHidden:YES animated:NO];
+#endif
     
     // We can get here on home press while streaming
     // since the stream view segues to us just before
@@ -1292,6 +1424,9 @@ static NSMutableSet* hostList;
     
     [hostScrollView addSubview:addComp];
     [hostScrollView setContentSize:CGSizeMake(prevEdge + addComp.frame.size.width, hostScrollView.frame.size.height)];
+#if !TARGET_OS_TV
+    [self layoutComputerCards];
+#endif
 }
 
 - (float) getCompViewX:(UIComputerView*)comp addComp:(UIComputerView*)addComp prevEdge:(float)prevEdge {
@@ -1378,6 +1513,7 @@ static NSMutableSet* hostList;
     
     [hostScrollView removeFromSuperview];
     [self.collectionView reloadData];
+    [self.view setNeedsLayout];
 }
 
 - (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
@@ -1386,6 +1522,16 @@ static NSMutableSet* hostList;
     TemporaryApp* app = _sortedAppList[indexPath.row];
     UIAppView* appView = [[UIAppView alloc] initWithApp:app cache:_boxArtCache andCallback:self];
     
+#if !TARGET_OS_TV
+    for (UIView *oldView in cell.contentView.subviews) [oldView removeFromSuperview];
+    appView.frame = cell.contentView.bounds;
+    appView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    [cell.contentView addSubview:appView];
+    cell.backgroundColor = UIColor.clearColor;
+    cell.contentView.backgroundColor = UIColor.clearColor;
+    cell.layer.borderWidth = 0;
+    cell.exclusiveTouch = YES;
+#else
     if (appView.bounds.size.width > 10.0) {
         CGFloat scale = cell.bounds.size.width / appView.bounds.size.width;
         [appView setCenter:CGPointMake(appView.bounds.size.width / 2 * scale, appView.bounds.size.height / 2 * scale)];
@@ -1407,6 +1553,8 @@ static NSMutableSet* hostList;
     cell.layer.borderWidth = 1;
     cell.layer.borderColor = [[UIColor colorWithRed:0 green:0 blue:0 alpha:0.3f] CGColor];
     cell.exclusiveTouch = YES;
+#endif
+
 #endif
 
     return cell;
@@ -1443,13 +1591,23 @@ static NSMutableSet* hostList;
 }
 
 - (void) disableNavigation {
-    self.navigationController.navigationBar.topItem.rightBarButtonItem.enabled = NO;
-    self.navigationController.navigationBar.topItem.leftBarButtonItem.enabled = NO;
+    for (UIBarButtonItem *item in self.navigationItem.rightBarButtonItems) item.enabled = NO;
+    for (UIBarButtonItem *item in self.navigationItem.leftBarButtonItems) item.enabled = NO;
+#if !TARGET_OS_TV
+    _libraryBackButton.enabled = NO;
+    _documentationControl.enabled = NO;
+    _settingsControl.enabled = NO;
+#endif
 }
 
 - (void) enableNavigation {
-    self.navigationController.navigationBar.topItem.rightBarButtonItem.enabled = YES;
-    self.navigationController.navigationBar.topItem.leftBarButtonItem.enabled = YES;
+    for (UIBarButtonItem *item in self.navigationItem.rightBarButtonItems) item.enabled = YES;
+    for (UIBarButtonItem *item in self.navigationItem.leftBarButtonItems) item.enabled = YES;
+#if !TARGET_OS_TV
+    _libraryBackButton.enabled = YES;
+    _documentationControl.enabled = YES;
+    _settingsControl.enabled = YES;
+#endif
 }
 
 #if TARGET_OS_TV
