@@ -8,7 +8,7 @@
 
 #import "ControllerSupport.h"
 #import "OnScreenControls.h"
-#import "Moonlight-Swift.h"
+#import "Astralight-Swift.h"
 #import "StreamConfiguration.h"
 
 @protocol UserInteractionDelegate <NSObject>

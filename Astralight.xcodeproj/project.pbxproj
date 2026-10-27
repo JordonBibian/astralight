@@ -215,12 +215,12 @@
 		98D5856C1C0EA79600F6CC00 /* TemporaryHost.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = TemporaryHost.m; path = Database/TemporaryHost.m; sourceTree = "<group>"; };
 		98D5856E1C0ED0E800F6CC00 /* TemporarySettings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TemporarySettings.h; path = Database/TemporarySettings.h; sourceTree = "<group>"; };
 		98D5856F1C0ED0E800F6CC00 /* TemporarySettings.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = TemporarySettings.m; path = Database/TemporarySettings.m; sourceTree = "<group>"; };
-		D4746EEA1CBC740C006FB401 /* Moonlight-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "Moonlight-Bridging-Header.h"; path = "Input/Moonlight-Bridging-Header.h"; sourceTree = "<group>"; };
+		D4746EEA1CBC740C006FB401 /* Astralight-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "Astralight-Bridging-Header.h"; path = "Input/Astralight-Bridging-Header.h"; sourceTree = "<group>"; };
 		DC1F5A05206436B10037755F /* ConnectionHelper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ConnectionHelper.h; sourceTree = "<group>"; };
 		DC1F5A06206436B20037755F /* ConnectionHelper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ConnectionHelper.m; sourceTree = "<group>"; };
 		FB1A674B2131E65900507771 /* KeyboardSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KeyboardSupport.h; sourceTree = "<group>"; };
 		FB1A674C2131E65900507771 /* KeyboardSupport.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KeyboardSupport.m; sourceTree = "<group>"; };
-		FB1A67532132419700507771 /* Moonlight TV.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Moonlight TV.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		FB1A67532132419700507771 /* Astralight TV.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Astralight TV.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		FB1A675F2132419700507771 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		FB1A67612132419A00507771 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FB1A67632132419A00507771 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -231,7 +231,7 @@
 		FB1D59961BBCCB6400F482CA /* ComputerScrollView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ComputerScrollView.m; sourceTree = "<group>"; };
 		FB1D59981BBCCD7E00F482CA /* AppCollectionView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AppCollectionView.h; sourceTree = "<group>"; };
 		FB1D59991BBCCD7E00F482CA /* AppCollectionView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AppCollectionView.m; sourceTree = "<group>"; };
-		FB290CEE19B2C406004C83CF /* Moonlight.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Moonlight.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FB290CEE19B2C406004C83CF /* Astralight.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Astralight.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FB290CF119B2C406004C83CF /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		FB290CF319B2C406004C83CF /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		FB290CF519B2C406004C83CF /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
@@ -385,7 +385,7 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		FB1A67542132419700507771 /* Moonlight TV */ = {
+		FB1A67542132419700507771 /* Astralight TV */ = {
 			isa = PBXGroup;
 			children = (
 				FB1A675E2132419700507771 /* Main.storyboard */,
@@ -394,7 +394,7 @@
 				FB1A67642132419A00507771 /* main.m */,
 				693B3A9A218638CD00982F7B /* Settings.bundle */,
 			);
-			path = "Moonlight TV";
+			path = "Astralight TV";
 			sourceTree = "<group>";
 		};
 		FB290CE519B2C406004C83CF = {
@@ -402,8 +402,8 @@
 			children = (
 				9896219423D15C2900211983 /* X1Kit */,
 				98AB2E7F1CAD46830089BB98 /* moonlight-common.xcodeproj */,
-				FB290CF919B2C406004C83CF /* Moonlight */,
-				FB1A67542132419700507771 /* Moonlight TV */,
+				FB290CF919B2C406004C83CF /* Astralight */,
+				FB1A67542132419700507771 /* Astralight TV */,
 				FB290CF019B2C406004C83CF /* Frameworks */,
 				FB290CEF19B2C406004C83CF /* Products */,
 			);
@@ -412,8 +412,8 @@
 		FB290CEF19B2C406004C83CF /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				FB290CEE19B2C406004C83CF /* Moonlight.app */,
-				FB1A67532132419700507771 /* Moonlight TV.app */,
+				FB290CEE19B2C406004C83CF /* Astralight.app */,
+				FB1A67532132419700507771 /* Astralight TV.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -445,10 +445,10 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		FB290CF919B2C406004C83CF /* Moonlight */ = {
+		FB290CF919B2C406004C83CF /* Astralight */ = {
 			isa = PBXGroup;
 			children = (
-				D4746EEA1CBC740C006FB401 /* Moonlight-Bridging-Header.h */,
+				D4746EEA1CBC740C006FB401 /* Astralight-Bridging-Header.h */,
 				FB89460419F646E200339C8A /* Crypto */,
 				FB89460919F646E200339C8A /* Input */,
 				FB89460E19F646E200339C8A /* Network */,
@@ -475,7 +475,7 @@
 				FB1D59981BBCCD7E00F482CA /* AppCollectionView.h */,
 				FB1D59991BBCCD7E00F482CA /* AppCollectionView.m */,
 			);
-			name = Moonlight;
+			name = Astralight;
 			path = Limelight;
 			sourceTree = "<group>";
 		};
@@ -693,9 +693,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		FB1A67522132419700507771 /* Moonlight TV */ = {
+		FB1A67522132419700507771 /* Astralight TV */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = FB1A67682132419A00507771 /* Build configuration list for PBXNativeTarget "Moonlight TV" */;
+			buildConfigurationList = FB1A67682132419A00507771 /* Build configuration list for PBXNativeTarget "Astralight TV" */;
 			buildPhases = (
 				FB1A674F2132419700507771 /* Sources */,
 				FB1A67502132419700507771 /* Frameworks */,
@@ -706,17 +706,17 @@
 			dependencies = (
 				FB1A68172132509800507771 /* PBXTargetDependency */,
 			);
-			name = "Moonlight TV";
+			name = "Astralight TV";
 			packageProductDependencies = (
 				F74BEFA32C1A80E400224667 /* OpenSSL */,
 			);
-			productName = "Moonlight TV";
-			productReference = FB1A67532132419700507771 /* Moonlight TV.app */;
+			productName = "Astralight TV";
+			productReference = FB1A67532132419700507771 /* Astralight TV.app */;
 			productType = "com.apple.product-type.application";
 		};
-		FB290CED19B2C406004C83CF /* Moonlight */ = {
+		FB290CED19B2C406004C83CF /* Astralight */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = FB290D2019B2C406004C83CF /* Build configuration list for PBXNativeTarget "Moonlight" */;
+			buildConfigurationList = FB290D2019B2C406004C83CF /* Build configuration list for PBXNativeTarget "Astralight" */;
 			buildPhases = (
 				FB290CEA19B2C406004C83CF /* Sources */,
 				FB290CEB19B2C406004C83CF /* Frameworks */,
@@ -727,12 +727,12 @@
 			dependencies = (
 				98AB2E861CAD468B0089BB98 /* PBXTargetDependency */,
 			);
-			name = Moonlight;
+			name = Astralight;
 			packageProductDependencies = (
 				F74BEF9B2C1A705600224667 /* OpenSSL */,
 			);
-			productName = Limelight;
-			productReference = FB290CEE19B2C406004C83CF /* Moonlight.app */;
+			productName = Astralight;
+			productReference = FB290CEE19B2C406004C83CF /* Astralight.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -761,7 +761,7 @@
 					};
 				};
 			};
-			buildConfigurationList = FB290CE919B2C406004C83CF /* Build configuration list for PBXProject "Moonlight" */;
+			buildConfigurationList = FB290CE919B2C406004C83CF /* Build configuration list for PBXProject "Astralight" */;
 			compatibilityVersion = "Xcode 8.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -783,8 +783,8 @@
 			);
 			projectRoot = "";
 			targets = (
-				FB290CED19B2C406004C83CF /* Moonlight */,
-				FB1A67522132419700507771 /* Moonlight TV */,
+				FB290CED19B2C406004C83CF /* Astralight */,
+				FB1A67522132419700507771 /* Astralight TV */,
 			);
 		};
 /* End PBXProject section */
@@ -1000,7 +1000,7 @@
 					"$(SDKROOT)/usr/include/libxml2/**",
 					"$(PROJECT_DIR)/libs/**",
 				);
-				INFOPLIST_FILE = "Moonlight TV/Info.plist";
+				INFOPLIST_FILE = "Astralight TV/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
 				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1024,8 +1024,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.moonlight-stream.Moonlight";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
-				SWIFT_OBJC_BRIDGING_HEADER = "Limelight/Input/Moonlight-Bridging-Header.h";
-				SWIFT_OBJC_INTERFACE_HEADER_NAME = "Moonlight-Swift.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "Limelight/Input/Astralight-Bridging-Header.h";
+				SWIFT_OBJC_INTERFACE_HEADER_NAME = "Astralight-Swift.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
@@ -1056,7 +1056,7 @@
 					"$(SDKROOT)/usr/include/libxml2/**",
 					"$(PROJECT_DIR)/libs/**",
 				);
-				INFOPLIST_FILE = "Moonlight TV/Info.plist";
+				INFOPLIST_FILE = "Astralight TV/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
 				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1081,8 +1081,8 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
 				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_OBJC_BRIDGING_HEADER = "Limelight/Input/Moonlight-Bridging-Header.h";
-				SWIFT_OBJC_INTERFACE_HEADER_NAME = "Moonlight-Swift.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "Limelight/Input/Astralight-Bridging-Header.h";
+				SWIFT_OBJC_INTERFACE_HEADER_NAME = "Astralight-Swift.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_TVOS_DEPLOYMENT_TARGET)";
@@ -1250,8 +1250,8 @@
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = NO;
-				SWIFT_OBJC_BRIDGING_HEADER = "Limelight/Input/Moonlight-Bridging-Header.h";
-				SWIFT_OBJC_INTERFACE_HEADER_NAME = "Moonlight-Swift.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "Limelight/Input/Astralight-Bridging-Header.h";
+				SWIFT_OBJC_INTERFACE_HEADER_NAME = "Astralight-Swift.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
 				SWIFT_VERSION = 5.0;
@@ -1303,8 +1303,8 @@
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = NO;
 				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_OBJC_BRIDGING_HEADER = "Limelight/Input/Moonlight-Bridging-Header.h";
-				SWIFT_OBJC_INTERFACE_HEADER_NAME = "Moonlight-Swift.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "Limelight/Input/Astralight-Bridging-Header.h";
+				SWIFT_OBJC_INTERFACE_HEADER_NAME = "Astralight-Swift.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
 				SWIFT_VERSION = 5.0;
@@ -1315,7 +1315,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		FB1A67682132419A00507771 /* Build configuration list for PBXNativeTarget "Moonlight TV" */ = {
+		FB1A67682132419A00507771 /* Build configuration list for PBXNativeTarget "Astralight TV" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				FB1A67662132419A00507771 /* Debug */,
@@ -1324,7 +1324,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		FB290CE919B2C406004C83CF /* Build configuration list for PBXProject "Moonlight" */ = {
+		FB290CE919B2C406004C83CF /* Build configuration list for PBXProject "Astralight" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				FB290D1E19B2C406004C83CF /* Debug */,
@@ -1333,7 +1333,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		FB290D2019B2C406004C83CF /* Build configuration list for PBXNativeTarget "Moonlight" */ = {
+		FB290D2019B2C406004C83CF /* Build configuration list for PBXNativeTarget "Astralight" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				FB290D2119B2C406004C83CF /* Debug */,

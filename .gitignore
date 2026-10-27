@@ -1,6 +1,8 @@
 **/xcuserdata/
-**/Moonlight.xcscmblueprint
+**/*.xcscmblueprint
+**/*.xccheckout
 **/xcschemes/*.xcscheme
+!Astralight.xcodeproj/xcshareddata/xcschemes/*.xcscheme
 .DS_Store
 Build
 DerivedData
