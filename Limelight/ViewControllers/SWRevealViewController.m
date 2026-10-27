@@ -27,6 +27,7 @@
 #import <QuartzCore/QuartzCore.h>
 
 #import "SWRevealViewController.h"
+#import "Utils.h"
 
 
 #pragma mark - StatusBar Helper Function
@@ -36,9 +37,10 @@
 static CGFloat statusBarAdjustment( UIView* view )
 {
     CGFloat adjustment = 0.0f;
-    UIApplication *app = [UIApplication sharedApplication];
-    CGRect viewFrame = [view convertRect:view.bounds toView:[app keyWindow]];
-    CGRect statusBarFrame = [app statusBarFrame];
+    UIWindow *window = view.window;
+    CGRect viewFrame = [view convertRect:view.bounds toView:window];
+    CGRect statusBarFrame = [window convertRect:window.windowScene.statusBarManager.statusBarFrame
+                           fromCoordinateSpace:window.screen.coordinateSpace];
     
     if ( CGRectIntersectsRect(viewFrame, statusBarFrame) )
         adjustment = fminf(statusBarFrame.size.width, statusBarFrame.size.height);
@@ -413,6 +415,11 @@ static CGFloat scaledValue( CGFloat v1, CGFloat min2, CGFloat max2, CGFloat min1
 }
 
 
+- (void)pauseInteractiveTransition
+{
+    // This transition context is noninteractive.
+}
+
 - (void)finishInteractiveTransition
 {
     // not supported
@@ -658,7 +665,7 @@ const int FrontViewPositionNone = 0xff;
 
 - (UIViewController *)childViewControllerForStatusBarStyle
 {
-    int positionDif =  _frontViewPosition - FrontViewPositionLeft;
+    NSInteger positionDif =  _frontViewPosition - FrontViewPositionLeft;
     
     UIViewController *controller = _frontViewController;
     if ( positionDif > 0 ) controller = _rearViewController;
@@ -690,7 +697,7 @@ const int FrontViewPositionNone = 0xff;
     
     // On iOS7 the applicationFrame does not return the whole screen. This is possibly a bug.
     // As a workaround we use the screen bounds, this still works on iOS6, any zero based frame would work anyway!
-    CGRect frame = [[UIScreen mainScreen] bounds];
+    CGRect frame = [Utils screenForView:self.viewIfLoaded].bounds;
 
     // create a custom content view for the controller
     _contentView = [[SWRevealView alloc] initWithFrame:frame controller:self];
@@ -1635,11 +1642,11 @@ const int FrontViewPositionNone = 0xff;
     
     if ( [controllerView isKindOfClass:[UIScrollView class]] )
     {
-        BOOL adjust = controller.automaticallyAdjustsScrollViewInsets;
+        BOOL adjust = ((UIScrollView *)controllerView).contentInsetAdjustmentBehavior != UIScrollViewContentInsetAdjustmentNever;
         
         if ( adjust )
         {
-            [(id)controllerView setContentInset:UIEdgeInsetsMake(statusBarAdjustment(_contentView), 0, 0, 0)];
+            ((UIScrollView *)controllerView).contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentAutomatic;
         }
     }
     

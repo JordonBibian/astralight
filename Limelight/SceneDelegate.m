@@ -1,6 +1,10 @@
 #import "SceneDelegate.h"
 #import "AppDelegate.h"
 
+#if DEBUG
+extern int ALRunVideoSmokeTests(void);
+#endif
+
 @implementation SceneDelegate
 
 - (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)connectionOptions {
@@ -19,6 +23,12 @@
     UIStoryboard *storyboard = [UIStoryboard storyboardWithName:storyboardName bundle:nil];
     self.window.rootViewController = [storyboard instantiateInitialViewController];
     [self.window makeKeyAndVisible];
+#if DEBUG
+    // Explicit diagnostic only; normal launches and all Release builds skip it.
+    if ([NSProcessInfo.processInfo.arguments containsObject:@"--video-pipeline-self-test"]) {
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{ ALRunVideoSmokeTests(); });
+    }
+#endif
 }
 
 - (void)windowScene:(UIWindowScene *)windowScene performActionForShortcutItem:(UIApplicationShortcutItem *)shortcutItem completionHandler:(void (^)(BOOL))completionHandler {

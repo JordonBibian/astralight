@@ -18,6 +18,8 @@
 @property int serverCodecModeSupport;
 @property int width;
 @property int height;
+@property CGSize nativeSize;
+@property BOOL useSpatialUpscaling;
 @property int frameRate;
 @property int bitRate;
 @property int riKeyId;

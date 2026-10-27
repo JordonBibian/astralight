@@ -9,13 +9,15 @@
 #import "SettingsViewController.h"
 #import "TemporarySettings.h"
 #import "DataManager.h"
+#import "Utils.h"
+#import "SpatialVideoDecoder.h"
 
 #import <VideoToolbox/VideoToolbox.h>
 #import <AVFoundation/AVFoundation.h>
 
 @implementation SettingsViewController {
     NSInteger _bitrate;
-    NSInteger _lastSelectedResolutionIndex;
+    BOOL _hdrSupported;
 }
 
 @dynamic overrideUserInterfaceStyle;
@@ -50,9 +52,6 @@ static const int bitrateTable[] = {
     150000,
 };
 
-const int RESOLUTION_TABLE_SIZE = 7;
-const int RESOLUTION_TABLE_CUSTOM_INDEX = RESOLUTION_TABLE_SIZE - 1;
-CGSize resolutionTable[RESOLUTION_TABLE_SIZE];
 
 -(int)getSliderValueForBitrate:(NSInteger)bitrate {
     int i;
@@ -70,6 +69,8 @@ CGSize resolutionTable[RESOLUTION_TABLE_SIZE];
 // This view is rooted at a ScrollView. To make it scrollable,
 // we'll update content size here.
 -(void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+    [self updateResolutionDisplayViewText];
     CGFloat highestViewY = 0;
     
     // Enumerate the scroll view's subviews looking for the
@@ -112,20 +113,6 @@ CGSize resolutionTable[RESOLUTION_TABLE_SIZE];
     }
 }
 
-BOOL isCustomResolution(CGSize res) {
-    if (res.width == 0 && res.height == 0) {
-        return NO;
-    }
-    
-    for (int i = 0; i < RESOLUTION_TABLE_CUSTOM_INDEX; i++) {
-        if (res.width == resolutionTable[i].width && res.height == resolutionTable[i].height) {
-            return NO;
-        }
-    }
-    
-    return YES;
-}
-
 - (void)viewDidLoad {
     [super viewDidLoad];
 
@@ -140,31 +127,15 @@ BOOL isCustomResolution(CGSize res) {
     // Ensure we pick a bitrate that falls exactly onto a slider notch
     _bitrate = bitrateTable[[self getSliderValueForBitrate:[currentSettings.bitrate intValue]]];
 
-    // Get the size of the screen with and without safe area insets
-    UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
-    CGFloat screenScale = window.screen.scale;
-    CGFloat safeAreaWidth = (window.frame.size.width - window.safeAreaInsets.left - window.safeAreaInsets.right) * screenScale;
-    CGFloat fullScreenWidth = window.frame.size.width * screenScale;
-    CGFloat fullScreenHeight = window.frame.size.height * screenScale;
-    
     self.resolutionDisplayView.layer.cornerRadius = 10;
     self.resolutionDisplayView.clipsToBounds = YES;
-    UITapGestureRecognizer *resolutionDisplayViewTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(resolutionDisplayViewTapped:)];
-    [self.resolutionDisplayView addGestureRecognizer:resolutionDisplayViewTap];
-    
-    resolutionTable[0] = CGSizeMake(640, 360);
-    resolutionTable[1] = CGSizeMake(1280, 720);
-    resolutionTable[2] = CGSizeMake(1920, 1080);
-    resolutionTable[3] = CGSizeMake(3840, 2160);
-    resolutionTable[4] = CGSizeMake(safeAreaWidth, fullScreenHeight);
-    resolutionTable[5] = CGSizeMake(fullScreenWidth, fullScreenHeight);
-    resolutionTable[6] = CGSizeMake([currentSettings.width integerValue], [currentSettings.height integerValue]); // custom initial value
-    
-    // Don't populate the custom entry unless we have a custom resolution
-    if (!isCustomResolution(resolutionTable[6])) {
-        resolutionTable[6] = CGSizeMake(0, 0);
-    }
-    
+    [self.resolutionSelector removeAllSegments];
+    [self.resolutionSelector insertSegmentWithTitle:@"Native" atIndex:0 animated:NO];
+    [self.resolutionSelector insertSegmentWithTitle:@"Upscaled (SDR)" atIndex:1 animated:NO];
+    BOOL upscalingSupported = [SpatialVideoDecoder isSupported];
+    [self.resolutionSelector setEnabled:upscalingSupported forSegmentAtIndex:1];
+    NSInteger resolution = upscalingSupported && [NSUserDefaults.standardUserDefaults boolForKey:AstralightSpatialUpscalingEnabled] ? 1 : 0;
+
     NSInteger framerate;
     switch ([currentSettings.framerate integerValue]) {
         case 30:
@@ -179,19 +150,10 @@ BOOL isCustomResolution(CGSize res) {
             break;
     }
 
-    NSInteger resolution = 1;
-    for (int i = 0; i < RESOLUTION_TABLE_SIZE; i++) {
-        if ((int) resolutionTable[i].height == [currentSettings.height intValue]
-            && (int) resolutionTable[i].width == [currentSettings.width intValue]) {
-            resolution = i;
-            break;
-        }
-    }
-
     // Only show the 120 FPS option if we have a > 60-ish Hz display
     bool enable120Fps = false;
     if (@available(iOS 10.3, tvOS 10.3, *)) {
-        if ([UIScreen mainScreen].maximumFramesPerSecond > 62) {
+        if ([Utils screenForView:self.view].maximumFramesPerSecond > 62) {
             enable120Fps = true;
         }
     }
@@ -209,9 +171,6 @@ BOOL isCustomResolution(CGSize res) {
     if (!VTIsHardwareDecodeSupported(kCMVideoCodecType_HEVC)) {
         [self.codecSelector removeSegmentAtIndex:1 animated:NO];
 
-        // Only enable the 4K option for "recent" devices. We'll judge that by whether
-        // they support HEVC decoding (A9 or later).
-        [self.resolutionSelector setEnabled:NO forSegmentAtIndex:3];
     }
     switch (currentSettings.preferredCodec) {
         case CODEC_PREF_AUTO:
@@ -231,7 +190,7 @@ BOOL isCustomResolution(CGSize res) {
             break;
     }
     
-    if (!VTIsHardwareDecodeSupported(kCMVideoCodecType_HEVC) || !(AVPlayer.availableHDRModes & AVPlayerHDRModeHDR10)) {
+    if (!VTIsHardwareDecodeSupported(kCMVideoCodecType_HEVC) || !AVPlayer.eligibleForHDRPlayback) {
         [self.hdrSelector removeAllSegments];
         [self.hdrSelector insertSegmentWithTitle:@"Unsupported on this device" atIndex:0 animated:NO];
         [self.hdrSelector setEnabled:NO];
@@ -250,7 +209,8 @@ BOOL isCustomResolution(CGSize res) {
     [self.swapABXYButtonsSelector setSelectedSegmentIndex:currentSettings.swapABXYButtons ? 1 : 0];
     [self.audioOnPCSelector setSelectedSegmentIndex:currentSettings.playAudioOnPC ? 1 : 0];
     NSInteger onscreenControls = [currentSettings.onscreenControls integerValue];
-    _lastSelectedResolutionIndex = resolution;
+    _hdrSupported = self.hdrSelector.enabled;
+    self.hdrSelector.enabled = _hdrSupported && resolution == 0;
     [self.resolutionSelector setSelectedSegmentIndex:resolution];
     [self.resolutionSelector addTarget:self action:@selector(newResolutionChosen) forControlEvents:UIControlEventValueChanged];
     [self.framerateSelector setSelectedSegmentIndex:framerate];
@@ -333,127 +293,26 @@ BOOL isCustomResolution(CGSize res) {
 }
 
 - (void) newResolutionChosen {
-    BOOL lastSegmentSelected = [self.resolutionSelector selectedSegmentIndex] + 1 == [self.resolutionSelector numberOfSegments];
-    if (lastSegmentSelected) {
-        [self promptCustomResolutionDialog];
-    }
-    else {
-        [self updateBitrate];
-        [self updateResolutionDisplayViewText];
-        _lastSelectedResolutionIndex = [self.resolutionSelector selectedSegmentIndex];
-    }
-}
-
-- (void) promptCustomResolutionDialog {
-    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Enter Custom Resolution" message:nil preferredStyle:UIAlertControllerStyleAlert];
-
-    [alertController addTextFieldWithConfigurationHandler:^(UITextField *textField) {
-        textField.placeholder = @"Video Width";
-        textField.clearButtonMode = UITextFieldViewModeAlways;
-        textField.borderStyle = UITextBorderStyleRoundedRect;
-        textField.keyboardType = UIKeyboardTypeNumberPad;
-        
-        if (resolutionTable[RESOLUTION_TABLE_CUSTOM_INDEX].width == 0) {
-            textField.text = @"";
-        }
-        else {
-            textField.text = [NSString stringWithFormat:@"%d", (int) resolutionTable[RESOLUTION_TABLE_CUSTOM_INDEX].width];
-        }
-    }];
-
-    [alertController addTextFieldWithConfigurationHandler:^(UITextField *textField) {
-        textField.placeholder = @"Video Height";
-        textField.clearButtonMode = UITextFieldViewModeAlways;
-        textField.borderStyle = UITextBorderStyleRoundedRect;
-        textField.keyboardType = UIKeyboardTypeNumberPad;
-        
-        if (resolutionTable[RESOLUTION_TABLE_CUSTOM_INDEX].height == 0) {
-            textField.text = @"";
-        }
-        else {
-            textField.text = [NSString stringWithFormat:@"%d", (int) resolutionTable[RESOLUTION_TABLE_CUSTOM_INDEX].height];
-        }
-    }];
-
-    [alertController addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-        NSArray * textfields = alertController.textFields;
-        UITextField *widthField = textfields[0];
-        UITextField *heightField = textfields[1];
-        
-        long width = [widthField.text integerValue];
-        long height = [heightField.text integerValue];
-        if (width <= 0 || height <= 0) {
-            // Restore the previous selection
-            [self.resolutionSelector setSelectedSegmentIndex:self->_lastSelectedResolutionIndex];
-            return;
-        }
-        
-        // H.264 maximum
-        int maxResolutionDimension = 4096;
-        if (@available(iOS 11.0, tvOS 11.0, *)) {
-            if (VTIsHardwareDecodeSupported(kCMVideoCodecType_HEVC)) {
-                // HEVC maximum
-                maxResolutionDimension = 8192;
-            }
-        }
-        
-        // Cap to maximum valid dimensions
-        width = MIN(width, maxResolutionDimension);
-        height = MIN(height, maxResolutionDimension);
-        
-        // Cap to minimum valid dimensions
-        width = MAX(width, 256);
-        height = MAX(height, 256);
-
-        resolutionTable[RESOLUTION_TABLE_CUSTOM_INDEX] = CGSizeMake(width, height);
-        [self updateBitrate];
-        [self updateResolutionDisplayViewText];
-        self->_lastSelectedResolutionIndex = [self.resolutionSelector selectedSegmentIndex];
-        
-        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Custom Resolution Selected" message: @"Custom resolutions are not officially supported by GeForce Experience, so it will not set your host display resolution. You will need to set it manually while in game.\n\nResolutions that are not supported by your client or host PC may cause streaming errors." preferredStyle:UIAlertControllerStyleAlert];
-        [alertController addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
-        [self presentViewController:alertController animated:YES completion:nil];
-    }]];
-
-    [alertController addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
-        // Restore the previous selection
-        [self.resolutionSelector setSelectedSegmentIndex:self->_lastSelectedResolutionIndex];
-    }]];
-
-    [self presentViewController:alertController animated:YES completion:nil];
-}
-
-- (void)resolutionDisplayViewTapped:(UITapGestureRecognizer *)sender {
-    NSURL *url = [NSURL URLWithString:@"https://moonlight-stream.org/custom-resolution"];
-    if ([[UIApplication sharedApplication] canOpenURL:url]) {
-        [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
-    }
+    self.hdrSelector.enabled = _hdrSupported && self.resolutionSelector.selectedSegmentIndex == 0;
+    [self updateBitrate];
+    [self updateResolutionDisplayViewText];
 }
 
 - (void) updateResolutionDisplayViewText {
-    NSInteger width = [self getChosenStreamWidth];
-    NSInteger height = [self getChosenStreamHeight];
-    CGFloat viewFrameWidth = self.resolutionDisplayView.frame.size.width;
-    CGFloat viewFrameHeight = self.resolutionDisplayView.frame.size.height;
-    CGFloat padding = 10;
-    CGFloat fontSize = [UIFont smallSystemFontSize];
-    
-    for (UIView *subview in self.resolutionDisplayView.subviews) {
-        [subview removeFromSuperview];
-    }
-    UILabel *label1 = [[UILabel alloc] init];
-    label1.text = @"Set PC/Game resolution: ";
-    label1.font = [UIFont systemFontOfSize:fontSize];
-    [label1 sizeToFit];
-    label1.frame = CGRectMake(padding, (viewFrameHeight - label1.frame.size.height) / 2, label1.frame.size.width, label1.frame.size.height);
-
-    UILabel *label2 = [[UILabel alloc] init];
-    label2.text = [NSString stringWithFormat:@"%ld x %ld", (long)width, (long)height];
-    [label2 sizeToFit];
-    label2.frame = CGRectMake(viewFrameWidth - label2.frame.size.width - padding, (viewFrameHeight - label2.frame.size.height) / 2, label2.frame.size.width, label2.frame.size.height);
-
-    [self.resolutionDisplayView addSubview:label1];
-    [self.resolutionDisplayView addSubview:label2];
+    CGSize nativeSize = [Utils nativeDisplaySizeForView:self.view];
+    BOOL upscaling = self.resolutionSelector.selectedSegmentIndex == 1;
+    CGSize inputSize = [Utils streamSizeForNativeSize:nativeSize upscaling:upscaling];
+    for (UIView *subview in self.resolutionDisplayView.subviews) [subview removeFromSuperview];
+    UILabel *label = [[UILabel alloc] initWithFrame:CGRectInset(self.resolutionDisplayView.bounds, 8, 0)];
+    label.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    label.numberOfLines = 2;
+    label.textAlignment = NSTextAlignmentCenter;
+    label.font = [UIFont systemFontOfSize:12];
+    label.adjustsFontSizeToFitWidth = YES;
+    label.text = upscaling ?
+        [NSString stringWithFormat:@"%.0f × %.0f → %.0f × %.0f\nMetalFX upscaling • SDR", inputSize.width, inputSize.height, nativeSize.width, nativeSize.height] :
+        [NSString stringWithFormat:@"Native display: %.0f × %.0f\nFull-resolution streaming", nativeSize.width, nativeSize.height];
+    [self.resolutionDisplayView addSubview:label];
 }
 
 - (void) bitrateSliderMoved {
@@ -503,26 +362,17 @@ BOOL isCustomResolution(CGSize res) {
 }
 
 - (NSInteger) getChosenStreamHeight {
-    // because the 4k resolution can be removed
-    BOOL lastSegmentSelected = [self.resolutionSelector selectedSegmentIndex] + 1 == [self.resolutionSelector numberOfSegments];
-    if (lastSegmentSelected) {
-        return resolutionTable[RESOLUTION_TABLE_CUSTOM_INDEX].height;
-    }
-
-    return resolutionTable[[self.resolutionSelector selectedSegmentIndex]].height;
+    return [Utils streamSizeForNativeSize:[Utils nativeDisplaySizeForView:self.view]
+                               upscaling:self.resolutionSelector.selectedSegmentIndex == 1].height;
 }
 
 - (NSInteger) getChosenStreamWidth {
-    // because the 4k resolution can be removed
-    BOOL lastSegmentSelected = [self.resolutionSelector selectedSegmentIndex] + 1 == [self.resolutionSelector numberOfSegments];
-    if (lastSegmentSelected) {
-        return resolutionTable[RESOLUTION_TABLE_CUSTOM_INDEX].width;
-    }
-
-    return resolutionTable[[self.resolutionSelector selectedSegmentIndex]].width;
+    return [Utils streamSizeForNativeSize:[Utils nativeDisplaySizeForView:self.view]
+                               upscaling:self.resolutionSelector.selectedSegmentIndex == 1].width;
 }
 
 - (void) saveSettings {
+    [NSUserDefaults.standardUserDefaults setBool:self.resolutionSelector.selectedSegmentIndex == 1 forKey:AstralightSpatialUpscalingEnabled];
     DataManager* dataMan = [[DataManager alloc] init];
     NSInteger framerate = [self getChosenFrameRate];
     NSInteger height = [self getChosenStreamHeight];

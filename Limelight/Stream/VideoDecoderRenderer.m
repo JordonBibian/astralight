@@ -8,6 +8,10 @@
 
 #import "VideoDecoderRenderer.h"
 #import "StreamView.h"
+#import "Utils.h"
+#if !TARGET_OS_TV
+#import "SpatialVideoDecoder.h"
+#endif
 
 #include <libavcodec/avcodec.h>
 #include <libavcodec/cbs.h>
@@ -35,6 +39,9 @@ extern int ff_isom_write_av1c(AVIOContext *pb, const uint8_t *buf, int size,
     
     CADisplayLink* _displayLink;
     BOOL framePacing;
+#if !TARGET_OS_TV
+    SpatialVideoDecoder *_spatialDecoder;
+#endif
 }
 
 - (void)reinitializeDisplayLayer
@@ -43,6 +50,7 @@ extern int ff_isom_write_av1c(AVIOContext *pb, const uint8_t *buf, int size,
     
     displayLayer = [[AVSampleBufferDisplayLayer alloc] init];
     displayLayer.backgroundColor = [UIColor blackColor].CGColor;
+    displayLayer.contentsScale = [Utils screenForView:_view].nativeScale;
     
     // Ensure the AVSampleBufferDisplayLayer is sized to preserve the aspect ratio
     // of the video stream. We used to use AVLayerVideoGravityResizeAspect, but that
@@ -77,7 +85,7 @@ extern int ff_isom_write_av1c(AVIOContext *pb, const uint8_t *buf, int size,
     }
 }
 
-- (id)initWithView:(StreamView*)view callbacks:(id<ConnectionCallbacks>)callbacks streamAspectRatio:(float)aspectRatio useFramePacing:(BOOL)useFramePacing
+- (id)initWithView:(StreamView*)view callbacks:(id<ConnectionCallbacks>)callbacks streamAspectRatio:(float)aspectRatio useFramePacing:(BOOL)useFramePacing nativeSize:(CGSize)nativeSize useSpatialUpscaling:(BOOL)upscaling
 {
     self = [super init];
     
@@ -89,9 +97,37 @@ extern int ff_isom_write_av1c(AVIOContext *pb, const uint8_t *buf, int size,
     parameterSetBuffers = [[NSMutableArray alloc] init];
     
     [self reinitializeDisplayLayer];
-    
+#if !TARGET_OS_TV
+    if (upscaling) {
+        __weak VideoDecoderRenderer *weakSelf = self;
+        _spatialDecoder = [[SpatialVideoDecoder alloc] initWithOutputSize:nativeSize frameHandler:^(CVPixelBufferRef frame) {
+            [weakSelf displayUpscaledFrame:frame];
+        }];
+    }
+#endif
     return self;
 }
+
+#if !TARGET_OS_TV
+- (void)displayUpscaledFrame:(CVPixelBufferRef)frame {
+    CMVideoFormatDescriptionRef description = NULL;
+    CMSampleBufferRef sample = NULL;
+    CMSampleTimingInfo timing = {kCMTimeInvalid, kCMTimeZero, kCMTimeInvalid};
+    OSStatus status = CMVideoFormatDescriptionCreateForImageBuffer(kCFAllocatorDefault, frame, &description);
+    if (status == noErr) {
+        status = CMSampleBufferCreateReadyWithImageBuffer(kCFAllocatorDefault, frame, description, &timing, &sample);
+    }
+    if (status == noErr) {
+        CFArrayRef attachments = CMSampleBufferGetSampleAttachmentsArray(sample, true);
+        CFDictionarySetValue((CFMutableDictionaryRef)CFArrayGetValueAtIndex(attachments, 0), kCMSampleAttachmentKey_DisplayImmediately, kCFBooleanTrue);
+        [displayLayer.sampleBufferRenderer enqueueSampleBuffer:sample];
+        displayLayer.hidden = NO;
+        [_callbacks videoContentShown];
+    }
+    if (sample) CFRelease(sample);
+    if (description) CFRelease(description);
+}
+#endif
 
 - (void)setupWithVideoFormat:(int)videoFormat width:(int)videoWidth height:(int)videoHeight frameRate:(int)frameRate
 {
@@ -101,6 +137,10 @@ extern int ff_isom_write_av1c(AVIOContext *pb, const uint8_t *buf, int size,
 
 - (void)start
 {
+    if (!NSThread.isMainThread) {
+        dispatch_sync(dispatch_get_main_queue(), ^{ [self start]; });
+        return;
+    }
     _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(displayLinkCallback:)];
     if (@available(iOS 15.0, tvOS 15.0, *)) {
         _displayLink.preferredFrameRateRange = CAFrameRateRangeMake(self->frameRate, self->frameRate, self->frameRate);
@@ -142,7 +182,22 @@ int DrSubmitDecodeUnit(PDECODE_UNIT decodeUnit);
 
 - (void)stop
 {
+    // Connection shutdown runs on a worker. Serialize teardown with decode
+    // submission and frame delivery to avoid releasing their buffers underneath them.
+    if (!NSThread.isMainThread) {
+        dispatch_sync(dispatch_get_main_queue(), ^{ [self stop]; });
+        return;
+    }
     [_displayLink invalidate];
+    _displayLink = nil;
+#if !TARGET_OS_TV
+    [_spatialDecoder invalidate];
+    _spatialDecoder = nil;
+#endif
+    if (formatDesc) {
+        CFRelease(formatDesc);
+        formatDesc = NULL;
+    }
 }
 
 #define NALU_START_PREFIX_SIZE 3
@@ -515,9 +570,19 @@ int DrSubmitDecodeUnit(PDECODE_UNIT decodeUnit);
         return DR_NEED_IDR;
     }
     
+#if !TARGET_OS_TV
+    if (_spatialDecoder.failed) {
+        [_spatialDecoder invalidate];
+        _spatialDecoder = nil;
+        [self reinitializeDisplayLayer];
+        free(data);
+        return DR_NEED_IDR;
+    }
+#endif
+
     // Check for previous decoder errors before doing anything
-    if (displayLayer.status == AVQueuedSampleBufferRenderingStatusFailed) {
-        Log(LOG_E, @"Display layer rendering failed: %@", displayLayer.error);
+    if (displayLayer.sampleBufferRenderer.status == AVQueuedSampleBufferRenderingStatusFailed) {
+        Log(LOG_E, @"Display layer rendering failed: %@", displayLayer.sampleBufferRenderer.error);
         
         // Recreate the display layer. We are already on the main thread,
         // so this is safe to do right here.
@@ -574,6 +639,8 @@ int DrSubmitDecodeUnit(PDECODE_UNIT decodeUnit);
         status = CMBlockBufferAppendBufferReference(frameBlockBuffer, dataBlockBuffer, 0, length, 0);
         if (status != noErr) {
             Log(LOG_E, @"CMBlockBufferAppendBufferReference failed: %d", (int)status);
+            CFRelease(frameBlockBuffer);
+            CFRelease(dataBlockBuffer);
             return DR_NEED_IDR;
         }
     }
@@ -594,10 +661,20 @@ int DrSubmitDecodeUnit(PDECODE_UNIT decodeUnit);
         return DR_NEED_IDR;
     }
 
-    // Enqueue the next frame
-    [self->displayLayer enqueueSampleBuffer:sampleBuffer];
-    
-    if (du->frameType == FRAME_TYPE_IDR) {
+    int decodeResult = DR_OK;
+    BOOL spatial = NO;
+#if !TARGET_OS_TV
+    spatial = _spatialDecoder != nil;
+    if (spatial && ![_spatialDecoder decodeSampleBuffer:sampleBuffer]) {
+        [_spatialDecoder invalidate];
+        _spatialDecoder = nil;
+        [self reinitializeDisplayLayer];
+        decodeResult = DR_NEED_IDR;
+    }
+#endif
+    if (!spatial) [self->displayLayer.sampleBufferRenderer enqueueSampleBuffer:sampleBuffer];
+
+    if (!spatial && du->frameType == FRAME_TYPE_IDR) {
         // Ensure the layer is visible now
         self->displayLayer.hidden = NO;
         
@@ -610,7 +687,7 @@ int DrSubmitDecodeUnit(PDECODE_UNIT decodeUnit);
     CFRelease(frameBlockBuffer);
     CFRelease(sampleBuffer);
     
-    return DR_OK;
+    return decodeResult;
 }
 
 - (void)setHdrMode:(BOOL)enabled {

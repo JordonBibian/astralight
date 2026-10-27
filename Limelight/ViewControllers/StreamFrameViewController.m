@@ -96,10 +96,11 @@
     _spinner = [[UIActivityIndicatorView alloc] init];
     [_spinner setUserInteractionEnabled:NO];
 #if TARGET_OS_TV
-    [_spinner setActivityIndicatorViewStyle:UIActivityIndicatorViewStyleWhiteLarge];
+    [_spinner setActivityIndicatorViewStyle:UIActivityIndicatorViewStyleLarge];
 #else
-    [_spinner setActivityIndicatorViewStyle:UIActivityIndicatorViewStyleWhite];
+    [_spinner setActivityIndicatorViewStyle:UIActivityIndicatorViewStyleMedium];
 #endif
+    _spinner.color = UIColor.whiteColor;
     [_spinner sizeToFit];
     [_spinner startAnimating];
     _spinner.center = CGPointMake(self.view.frame.size.width / 2, self.view.frame.size.height / 2 - _stageLabel.frame.size.height - _spinner.frame.size.height);
@@ -699,9 +700,6 @@
     return NO;
 }
 
-- (BOOL)shouldAutorotate {
-    return YES;
-}
 
 - (BOOL)prefersPointerLocked {
     // Pointer lock breaks the UIKit mouse APIs, which is a problem because

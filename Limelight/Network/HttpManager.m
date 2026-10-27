@@ -353,13 +353,14 @@
     // Allow untrusted server certificates
     if([challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodServerTrust])
     {
-        if (SecTrustGetCertificateCount(challenge.protectionSpace.serverTrust) != 1) {
+        NSArray *certificateChain = CFBridgingRelease(SecTrustCopyCertificateChain(challenge.protectionSpace.serverTrust));
+        if (certificateChain.count != 1) {
             Log(LOG_E, @"Server certificate count mismatch");
             completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, NULL);
             return;
         }
         
-        SecCertificateRef actualCert = SecTrustGetCertificateAtIndex(challenge.protectionSpace.serverTrust, 0);
+        SecCertificateRef actualCert = (__bridge SecCertificateRef)certificateChain.firstObject;
         if (actualCert == nil) {
             Log(LOG_E, @"Server certificate parsing error");
             completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, NULL);

@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        A57000000000000000000005 /* VideoPipelineSmokeTests.m in Sources */ = {isa = PBXBuildFile; fileRef = A57000000000000000000006 /* VideoPipelineSmokeTests.m */; settings = {COMPILER_FLAGS = "-DASTRALIGHT_EMBED_VIDEO_TESTS=1"; }; };
+        A57000000000000000000001 /* SpatialVideoDecoder.m in Sources */ = {isa = PBXBuildFile; fileRef = A57000000000000000000002 /* SpatialVideoDecoder.m */; };
 		C0D3A0012FEF000000000001 /* SceneDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = C0D3A0012FEF000000000003 /* SceneDelegate.m */; };
 		693B3A9B218638CD00982F7B /* Settings.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 693B3A9A218638CD00982F7B /* Settings.bundle */; };
 		98181BE92791277400E43572 /* libSDL2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 98181BE82791275D00E43572 /* libSDL2.a */; };
@@ -171,6 +173,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+        A57000000000000000000006 /* VideoPipelineSmokeTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Tests/VideoPipelineSmokeTests.m; sourceTree = SOURCE_ROOT; };
+        A57000000000000000000004 /* StreamResolution.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StreamResolution.h; sourceTree = "<group>"; };
+        A57000000000000000000002 /* SpatialVideoDecoder.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SpatialVideoDecoder.m; sourceTree = "<group>"; };
+        A57000000000000000000003 /* SpatialVideoDecoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SpatialVideoDecoder.h; sourceTree = "<group>"; };
 		C0D3A0012FEF000000000002 /* SceneDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SceneDelegate.h; sourceTree = "<group>"; };
 		C0D3A0012FEF000000000003 /* SceneDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SceneDelegate.m; sourceTree = "<group>"; };
 		566E9D2B2770B23A00EF7BFE /* Moonlight v1.7.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = "Moonlight v1.7.xcdatamodel"; sourceTree = "<group>"; };
@@ -553,7 +559,11 @@
 				FB89461919F646E200339C8A /* StreamConfiguration.m */,
 				FB89461A19F646E200339C8A /* StreamManager.h */,
 				FB89461B19F646E200339C8A /* StreamManager.m */,
-				FB89461C19F646E200339C8A /* VideoDecoderRenderer.h */,
+				A57000000000000000000002 /* SpatialVideoDecoder.m */,
+                A57000000000000000000003 /* SpatialVideoDecoder.h */,
+                A57000000000000000000004 /* StreamResolution.h */,
+                A57000000000000000000006 /* VideoPipelineSmokeTests.m */,
+                FB89461C19F646E200339C8A /* VideoDecoderRenderer.h */,
 				FB89461D19F646E200339C8A /* VideoDecoderRenderer.m */,
 				9803CCAB254F9EAF00EE185E /* ConnectionCallbacks.h */,
 			);
@@ -894,7 +904,9 @@
 				9819CC22254F180F008A7C8E /* AbsoluteTouchHandler.m in Sources */,
 				9819CC14254F107A008A7C8E /* RelativeTouchHandler.m in Sources */,
 				FB1A674D2131E65900507771 /* KeyboardSupport.m in Sources */,
-				FB89463219F646E200339C8A /* VideoDecoderRenderer.m in Sources */,
+				A57000000000000000000001 /* SpatialVideoDecoder.m in Sources */,
+                A57000000000000000000005 /* VideoPipelineSmokeTests.m in Sources */,
+                FB89463219F646E200339C8A /* VideoDecoderRenderer.m in Sources */,
 				FB290D0419B2C406004C83CF /* AppDelegate.m in Sources */,
 				C0D3A0012FEF000000000001 /* SceneDelegate.m in Sources */,
 				FB9AFD401A7E127D00872C98 /* AppListResponse.m in Sources */,
@@ -1002,7 +1014,7 @@
 				);
 				INFOPLIST_FILE = "Astralight TV/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
-				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1058,7 +1070,7 @@
 				);
 				INFOPLIST_FILE = "Astralight TV/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
-				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1139,7 +1151,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -1196,7 +1208,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				PROVISIONING_PROFILE = "";
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -1227,7 +1239,7 @@
 				);
 				INFOPLIST_FILE = "Limelight/Limelight-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
-				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1279,7 +1291,7 @@
 				);
 				INFOPLIST_FILE = "Limelight/Limelight-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
-				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

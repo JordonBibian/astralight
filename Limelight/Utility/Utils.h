@@ -21,6 +21,12 @@ typedef NS_ENUM(int, State) {
 };
 
 FOUNDATION_EXPORT NSString *const deviceName;
+FOUNDATION_EXPORT NSString *const AstralightSpatialUpscalingEnabled;
+
++ (UIWindow *)windowForView:(UIView *)view;
++ (UIScreen *)screenForView:(UIView *)view;
++ (CGSize)nativeDisplaySizeForView:(UIView *)view;
++ (CGSize)streamSizeForNativeSize:(CGSize)nativeSize upscaling:(BOOL)upscaling;
 
 + (NSData*) randomBytes:(NSInteger)length;
 + (NSString*) bytesToHex:(NSData*)data;

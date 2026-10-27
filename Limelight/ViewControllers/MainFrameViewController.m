@@ -13,6 +13,9 @@
 #import "Connection.h"
 #import "StreamManager.h"
 #import "Utils.h"
+#if !TARGET_OS_TV
+#import "SpatialVideoDecoder.h"
+#endif
 #import "UIComputerView.h"
 #import "UIAppView.h"
 #import "DataManager.h"
@@ -436,7 +439,7 @@ static NSMutableSet* hostList;
 }
 
 - (UIViewController*) activeViewController {
-    UIViewController *topController = [UIApplication sharedApplication].keyWindow.rootViewController;
+    UIViewController *topController = [Utils windowForView:self.viewIfLoaded].rootViewController;
 
     while (topController.presentedViewController) {
         topController = topController.presentedViewController;
@@ -615,14 +618,22 @@ static NSMutableSet* hostList;
     _streamConfig.frameRate = [streamSettings.framerate intValue];
     if (@available(iOS 10.3, *)) {
         // Don't stream more FPS than the display can show
-        if (_streamConfig.frameRate > [UIScreen mainScreen].maximumFramesPerSecond) {
-            _streamConfig.frameRate = (int)[UIScreen mainScreen].maximumFramesPerSecond;
+        if (_streamConfig.frameRate > [Utils screenForView:self.view].maximumFramesPerSecond) {
+            _streamConfig.frameRate = (int)[Utils screenForView:self.view].maximumFramesPerSecond;
             Log(LOG_W, @"Clamping FPS to maximum refresh rate: %d", _streamConfig.frameRate);
         }
     }
     
+#if !TARGET_OS_TV
+    _streamConfig.nativeSize = [Utils nativeDisplaySizeForView:self.view];
+    _streamConfig.useSpatialUpscaling = [NSUserDefaults.standardUserDefaults boolForKey:AstralightSpatialUpscalingEnabled] && [SpatialVideoDecoder isSupported];
+    CGSize streamSize = [Utils streamSizeForNativeSize:_streamConfig.nativeSize upscaling:_streamConfig.useSpatialUpscaling];
+    _streamConfig.width = (int)streamSize.width;
+    _streamConfig.height = (int)streamSize.height;
+#else
     _streamConfig.height = [streamSettings.height intValue];
     _streamConfig.width = [streamSettings.width intValue];
+#endif
 #if TARGET_OS_TV
     // Don't allow streaming 4K on the Apple TV HD
     struct utsname systemInfo;
@@ -683,20 +694,22 @@ static NSMutableSet* hostList;
             break;
     }
     
+    BOOL enableHdr = streamSettings.enableHdr && !_streamConfig.useSpatialUpscaling;
+
     // HEVC is supported if the user wants it (or it's required by the chosen resolution) and the SoC supports it
-    if ((_streamConfig.width > 4096 || _streamConfig.height > 4096 || streamSettings.enableHdr) && VTIsHardwareDecodeSupported(kCMVideoCodecType_HEVC)) {
+    if ((_streamConfig.width > 4096 || _streamConfig.height > 4096 || enableHdr) && VTIsHardwareDecodeSupported(kCMVideoCodecType_HEVC)) {
         _streamConfig.supportedVideoFormats |= VIDEO_FORMAT_H265;
         
         // HEVC Main10 is supported if the user wants it and the display supports it
-        if (streamSettings.enableHdr && (AVPlayer.availableHDRModes & AVPlayerHDRModeHDR10) != 0) {
+        if (enableHdr && AVPlayer.eligibleForHDRPlayback) {
             _streamConfig.supportedVideoFormats |= VIDEO_FORMAT_H265_MAIN10;
         }
     }
     
 #if defined(__IPHONE_16_0) || defined(__TVOS_16_0)
     // Add the AV1 Main10 format if AV1 and HDR are both enabled and supported
-    if ((_streamConfig.supportedVideoFormats & VIDEO_FORMAT_MASK_AV1) && streamSettings.enableHdr &&
-        VTIsHardwareDecodeSupported(kCMVideoCodecType_AV1) && (AVPlayer.availableHDRModes & AVPlayerHDRModeHDR10) != 0) {
+    if ((_streamConfig.supportedVideoFormats & VIDEO_FORMAT_MASK_AV1) && enableHdr &&
+        VTIsHardwareDecodeSupported(kCMVideoCodecType_AV1) && AVPlayer.eligibleForHDRPlayback) {
         _streamConfig.supportedVideoFormats |= VIDEO_FORMAT_AV1_MAIN10;
     }
 #endif
@@ -871,6 +884,29 @@ static NSMutableSet* hostList;
 }
 
 #if !TARGET_OS_TV
+- (UIAction *)documentationActionWithTitle:(NSString *)title symbol:(NSString *)symbol url:(NSString *)url {
+    return [UIAction actionWithTitle:title image:[UIImage systemImageNamed:symbol] identifier:nil handler:^(__kindof UIAction *action) {
+        [Utils launchUrl:url];
+    }];
+}
+
+- (void)addDocumentationButton {
+    UIMenu *menu = [UIMenu menuWithTitle:@"Official Documentation" children:@[
+        [self documentationActionWithTitle:@"Apollo Setup & Downloads" symbol:@"desktopcomputer"
+                                       url:@"https://github.com/ClassicOldSong/Apollo#usage"],
+        [self documentationActionWithTitle:@"Apollo Client Permissions" symbol:@"lock.shield"
+                                       url:@"https://github.com/ClassicOldSong/Apollo/wiki/Permission-System"],
+        [self documentationActionWithTitle:@"Moonlight Setup Guide" symbol:@"book"
+                                       url:@"https://github.com/moonlight-stream/moonlight-docs/wiki/Setup-Guide"],
+        [self documentationActionWithTitle:@"Moonlight Troubleshooting" symbol:@"wrench.and.screwdriver"
+                                       url:@"https://github.com/moonlight-stream/moonlight-docs/wiki/Troubleshooting"]
+    ]];
+    UIBarButtonItem *documentation = [[UIBarButtonItem alloc] initWithTitle:@"Documentation" menu:menu];
+    documentation.accessibilityIdentifier = @"documentationButton";
+    documentation.accessibilityHint = @"Choose an official Apollo or Moonlight guide to open in your browser.";
+    self.navigationItem.leftBarButtonItems = @[self.settingsButton, documentation];
+}
+
 - (void)revealController:(SWRevealViewController *)revealController didMoveToPosition:(FrontViewPosition)position {
     // If we moved back to the center position, we should save the settings
     if (position == FrontViewPositionLeft) {
@@ -927,6 +963,7 @@ static NSMutableSet* hostList;
     // Set the side bar button action. When it's tapped, it'll show the sidebar.
     [_settingsButton setTarget:self.revealViewController];
     [_settingsButton setAction:@selector(revealToggle:)];
+    [self addDocumentationButton];
     
     // Set the host name button action. When it's tapped, it'll show the host selection view.
     [_upButton setTarget:self];
@@ -1292,7 +1329,7 @@ static NSMutableSet* hostList;
     
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     CGContextRef imageContext =  CGBitmapContextCreate(NULL, width, height, 8, width * 4, colorSpace,
-                                                       kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
+                                                       (CGBitmapInfo)kCGImageAlphaPremultipliedFirst | (CGBitmapInfo)kCGBitmapByteOrder32Little);
     CGColorSpaceRelease(colorSpace);
 
     CGContextDrawImage(imageContext, CGRectMake(0, 0, width, height), cgImage);
@@ -1404,12 +1441,6 @@ static NSMutableSet* hostList;
     [textField resignFirstResponder];
     return YES;
 }
-
-#if !TARGET_OS_TV
-- (BOOL)shouldAutorotate {
-    return YES;
-}
-#endif
 
 - (void) disableNavigation {
     self.navigationController.navigationBar.topItem.rightBarButtonItem.enabled = NO;

@@ -7,6 +7,7 @@
 //
 
 #import "Utils.h"
+#import "StreamResolution.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -14,6 +15,54 @@
 
 @implementation Utils
 NSString *const deviceName = @"roth";
+NSString *const AstralightSpatialUpscalingEnabled = @"AstralightSpatialUpscalingEnabled";
+
++ (UIWindow *)windowForView:(UIView *)view {
+    if (view.window) return view.window;
+    // A presenting scene can be foreground-inactive during launch. Prefer the
+    // active scene, then that launching scene, so loading dialogs still complete.
+    UISceneActivationState states[] = {UISceneActivationStateForegroundActive, UISceneActivationStateForegroundInactive};
+    for (NSUInteger i = 0; i < sizeof(states) / sizeof(states[0]); i++) {
+        for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+            if (![scene isKindOfClass:UIWindowScene.class] || scene.activationState != states[i]) continue;
+            UIWindowScene *windowScene = (UIWindowScene *)scene;
+            if (windowScene.keyWindow) return windowScene.keyWindow;
+            for (UIWindow *window in windowScene.windows) {
+                if (!window.hidden && window.windowLevel == UIWindowLevelNormal) return window;
+            }
+        }
+    }
+#if TARGET_OS_TV
+    // The Apple TV target still uses the application-delegate window lifecycle.
+    return UIApplication.sharedApplication.delegate.window;
+#else
+    return nil;
+#endif
+}
+
++ (UIScreen *)screenForView:(UIView *)view {
+    UIScreen *screen = [self windowForView:view].screen;
+    if (screen) return screen;
+    // A scene may still be foreground-inactive while its view is loading.
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if ([scene isKindOfClass:UIWindowScene.class] && scene.activationState != UISceneActivationStateBackground) {
+            return ((UIWindowScene *)scene).screen;
+        }
+    }
+    return nil;
+}
+
++ (CGSize)nativeDisplaySizeForView:(UIView *)view {
+    UIScreen *screen = [self screenForView:view];
+    CGSize pixels = screen.nativeBounds.size;
+    // Streams run in landscape. nativeBounds is expressed in portrait pixels,
+    // independent of Display Zoom, safe-area insets, and the settings panel size.
+    return CGSizeMake(MAX(pixels.width, pixels.height), MIN(pixels.width, pixels.height));
+}
+
++ (CGSize)streamSizeForNativeSize:(CGSize)nativeSize upscaling:(BOOL)upscaling {
+    return ALStreamSizeForNativeSize(nativeSize, upscaling);
+}
 
 + (NSData*) randomBytes:(NSInteger)length {
     char* bytes = malloc(length);
