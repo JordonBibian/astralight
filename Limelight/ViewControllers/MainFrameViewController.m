@@ -1032,23 +1032,26 @@ static NSMutableSet* hostList;
     CGFloat left = safe.left + 24;
     CGFloat width = MAX(240, self.view.bounds.size.width - left - safe.right - 24);
     CGFloat top = MAX(0, safe.top - self.collectionView.adjustedContentInset.top);
+    // Keep the full computer cards visible on shorter landscape displays.
+    BOOL compactHeight = self.view.bounds.size.height - safe.top - safe.bottom < 430;
+    CGFloat contentTop = compactHeight ? 156 : 192;
     _topBar.frame = CGRectMake(left, top + 12, width, 48);
     _brandView.frame = CGRectMake(0, 4, MIN(190, width - 250), 40);
     _documentationControl.frame = CGRectMake(width - 248, 0, 190, 48);
     _settingsControl.frame = CGRectMake(width - 48, 0, 48, 48);
-    _libraryHeader.frame = CGRectMake(left, top + 84, width, 92);
+    _libraryHeader.frame = CGRectMake(left, top + (compactHeight ? 72 : 84), width, compactHeight ? 72 : 92);
     CGFloat backWidth = _libraryBackButton.hidden ? 0 : 144;
     _libraryTitle.frame = CGRectMake(0, 0, width - backWidth, 40);
     _libraryTitle.adjustsFontSizeToFitWidth = YES;
     _libraryTitle.minimumScaleFactor = 0.75;
-    _librarySubtitle.frame = CGRectMake(0, 47, width, 42);
+    _librarySubtitle.frame = CGRectMake(0, compactHeight ? 38 : 47, width, compactHeight ? 34 : 42);
     _libraryBackButton.frame = CGRectMake(width - 138, 0, 138, 44);
 
     UICollectionViewFlowLayout *layout = (UICollectionViewFlowLayout *)self.collectionView.collectionViewLayout;
     NSInteger columns = MAX(2, (NSInteger)floor((width + 16) / 180));
     CGFloat itemWidth = floor((width - (columns - 1) * 16) / columns);
     CGSize itemSize = CGSizeMake(itemWidth, floor(itemWidth * 0.8) + 86);
-    UIEdgeInsets insets = UIEdgeInsetsMake(192, 24, 32, 24);
+    UIEdgeInsets insets = UIEdgeInsetsMake(contentTop, 24, 32, 24);
     if (!CGSizeEqualToSize(layout.itemSize, itemSize) || !UIEdgeInsetsEqualToEdgeInsets(layout.sectionInset, insets)) {
         layout.itemSize = itemSize;
         layout.sectionInset = insets;
@@ -1057,7 +1060,7 @@ static NSMutableSet* hostList;
         layout.minimumInteritemSpacing = 16;
         [layout invalidateLayout];
     }
-    hostScrollView.frame = CGRectMake(left, top + 192, width, MAX(60, self.view.bounds.size.height - top - 192 - safe.bottom - 24));
+    hostScrollView.frame = CGRectMake(left, top + contentTop, width, MAX(60, self.view.bounds.size.height - top - contentTop - safe.bottom - 24));
     [self layoutComputerCards];
     [CATransaction begin];
     [CATransaction setDisableActions:YES];
