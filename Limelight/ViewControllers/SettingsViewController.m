@@ -12,6 +12,7 @@
 #import "Utils.h"
 #import "SpatialVideoDecoder.h"
 #import "SWRevealViewController.h"
+#import "ALInformationViewController.h"
 #import "../AstralightTheme.h"
 
 #import <VideoToolbox/VideoToolbox.h>
@@ -139,6 +140,36 @@ static const int bitrateTable[] = {
     [_settingsStack addArrangedSubview:card];
 }
 
+- (UIButton *)informationButton:(NSString *)title symbol:(NSString *)symbol action:(SEL)action identifier:(NSString *)identifier {
+    UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
+    button.configuration = ALButtonStyle(title, symbol);
+    button.accessibilityIdentifier = identifier;
+    [button.heightAnchor constraintGreaterThanOrEqualToConstant:48].active = YES;
+    [button addTarget:self action:action forControlEvents:UIControlEventTouchUpInside];
+    return button;
+}
+
+- (void)showDocument:(NSString *)document title:(NSString *)title {
+    ALInformationViewController *controller = [[ALInformationViewController alloc] initWithDocument:document title:title];
+    UINavigationController *navigation = [[UINavigationController alloc] initWithRootViewController:controller];
+    navigation.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
+    navigation.navigationBar.tintColor = ALAccentColor();
+    navigation.modalPresentationStyle = UIModalPresentationPageSheet;
+    [self presentViewController:navigation animated:YES completion:nil];
+}
+
+- (void)showPrivacyPolicy {
+    [self showDocument:@"Privacy" title:@"Privacy Policy"];
+}
+
+- (void)showLicenses {
+    [self showDocument:@"Licenses" title:@"Credits & Licenses"];
+}
+
+- (void)showSourceCode {
+    [Utils launchUrl:@"https://github.com/JordonBibian/astralight"];
+}
+
 - (void)configureSettingsAppearance {
     // Retain and reuse the storyboard controls, including their existing actions.
     for (UIView *view in self.scrollView.subviews.copy) [view removeFromSuperview];
@@ -208,6 +239,16 @@ static const int bitrateTable[] = {
     [self addSettingsSection:@"Audio & diagnostics" rows:@[
         [self settingWithTitle:@"Play audio on PC" control:self.audioOnPCSelector],
         [self settingWithTitle:@"Statistics overlay" control:self.statsOverlaySelector]]];
+    UILabel *version = ALLabel(14, UIFontWeightRegular, ALSecondaryColor());
+    version.numberOfLines = 0;
+    version.text = [NSString stringWithFormat:@"Version %@ (%@) · Independent Moonlight fork",
+        [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"],
+        [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleVersion"]];
+    [self addSettingsSection:@"About Astralight" rows:@[
+        version,
+        [self informationButton:@"Privacy Policy" symbol:@"hand.raised" action:@selector(showPrivacyPolicy) identifier:@"privacyPolicyButton"],
+        [self informationButton:@"Credits & Licenses" symbol:@"doc.text" action:@selector(showLicenses) identifier:@"licensesButton"],
+        [self informationButton:@"Source Code" symbol:@"chevron.left.forwardslash.chevron.right" action:@selector(showSourceCode) identifier:@"sourceCodeButton"]]];
     UIButton *doneFooter = [UIButton buttonWithType:UIButtonTypeSystem];
     doneFooter.configuration = ALButtonStyle(@"Done", @"checkmark");
     doneFooter.accessibilityIdentifier = @"settingsDoneFooterButton";

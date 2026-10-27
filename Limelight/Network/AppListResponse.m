@@ -29,7 +29,8 @@ static const char* TAG_APP_INSTALL_PATH = "AppInstallPath";
 }
 
 - (void) parseData {
-    xmlDocPtr docPtr = xmlParseMemory([self.data bytes], (int)[self.data length]);
+    xmlDocPtr docPtr = xmlReadMemory([self.data bytes], (int)[self.data length], NULL, NULL,
+        XML_PARSE_NONET | XML_PARSE_NOERROR | XML_PARSE_NOWARNING);
     if (docPtr == NULL) {
         Log(LOG_W, @"An error occured trying to parse xml.");
         return;

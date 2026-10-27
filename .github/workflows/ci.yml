@@ -25,15 +25,20 @@ jobs:
           - scheme: Astralight
             sdk: iphonesimulator
             platform: iOS
-          - scheme: Astralight TV
-            sdk: appletvsimulator
-            platform: tvOS
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
           submodules: recursive
+
+      - name: Apply pinned dependency fixes
+        run: sh BuildScripts/apply-dependency-fixes.sh
+
+      - name: Verify release inputs and privacy logging
+        run: |
+          python3 BuildScripts/verify-release-inputs.py
+          sh Tests/run-privacy-tests.sh
 
       - name: Download ${{ matrix.platform }} platform
         run: xcodebuild -downloadPlatform ${{ matrix.platform }}

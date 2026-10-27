@@ -120,19 +120,20 @@
     __block NSError* respError = nil;
     __block dispatch_semaphore_t requestLock = dispatch_semaphore_create(0);
     
-    Log(LOG_D, @"Making Request: %@", request);
+    // Requests and responses contain pairing material and stream encryption keys.
+    // Never log their URLs, descriptions, bodies, or NSError userInfo.
+    Log(LOG_D, @"Sending host request");
     NSURLSession* urlSession = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration] delegate:self delegateQueue:nil];
     [[urlSession dataTaskWithRequest:request.request completionHandler:^(NSData * __nullable data, NSURLResponse * __nullable response, NSError * __nullable error) {
         
         if (error != NULL) {
-            Log(LOG_D, @"Connection error: %@", error);
+            Log(LOG_D, @"Host connection error code: %ld", (long)error.code);
             respError = error;
         }
         else {
-            Log(LOG_D, @"Received response: %@", response);
+            Log(LOG_D, @"Received host response (%lu bytes)", (unsigned long)data.length);
 
             if (data != NULL) {
-                Log(LOG_D, @"\n\nReceived data: %@\n\n", [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
                 if ([[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] != nil) {
                     requestResp = [HttpManager fixXmlVersion:data];
                 } else {
@@ -281,7 +282,7 @@
                            config.gamepadMask, config.gamepadMask,
                            !config.multiController ? 1 : 0,
                            LiGetLaunchUrlQueryParameters()];
-    Log(LOG_I, @"Requesting: %@", urlString);
+    Log(LOG_I, @"Requesting stream at %dx%d (%d FPS)", config.width, config.height, config.frameRate);
     // This blocks while the app is launching
     return [self createRequestFromString:urlString timeout:LONG_TIMEOUT_SEC];
 }

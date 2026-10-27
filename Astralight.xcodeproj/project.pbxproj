@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        A57B00000000000000000001 /* ALInformationViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A57B00000000000000000002; };
+        A57B00000000000000000003 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A57B00000000000000000004; };
+        A57B00000000000000000005 /* Legal in Resources */ = {isa = PBXBuildFile; fileRef = A57B00000000000000000006; };
         A57000000000000000000007 /* DisplayReloadTests.m in Sources */ = {isa = PBXBuildFile; fileRef = A57000000000000000000008 /* DisplayReloadTests.m */; };
         A57000000000000000000005 /* VideoPipelineSmokeTests.m in Sources */ = {isa = PBXBuildFile; fileRef = A57000000000000000000006 /* VideoPipelineSmokeTests.m */; settings = {COMPILER_FLAGS = "-DASTRALIGHT_EMBED_VIDEO_TESTS=1"; }; };
         A57000000000000000000001 /* SpatialVideoDecoder.m in Sources */ = {isa = PBXBuildFile; fileRef = A57000000000000000000002 /* SpatialVideoDecoder.m */; };
@@ -174,6 +177,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+        A57B00000000000000000002 /* ALInformationViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ViewControllers/ALInformationViewController.m; sourceTree = "<group>"; };
+        A57B00000000000000000007 /* ALInformationViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ViewControllers/ALInformationViewController.h; sourceTree = "<group>"; };
+        A57B00000000000000000004 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+        A57B00000000000000000006 /* Legal */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Legal; sourceTree = "<group>"; };
         A57000000000000000000008 /* DisplayReloadTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Tests/DisplayReloadTests.m; sourceTree = SOURCE_ROOT; };
         A57A11A12026102700000001 /* AstralightTheme.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AstralightTheme.h; sourceTree = "<group>"; };
         A57000000000000000000006 /* VideoPipelineSmokeTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Tests/VideoPipelineSmokeTests.m; sourceTree = SOURCE_ROOT; };
@@ -457,6 +464,10 @@
 		FB290CF919B2C406004C83CF /* Astralight */ = {
 			isa = PBXGroup;
 			children = (
+                A57B00000000000000000002 /* ALInformationViewController.m */,
+                A57B00000000000000000007 /* ALInformationViewController.h */,
+                A57B00000000000000000004 /* PrivacyInfo.xcprivacy */,
+                A57B00000000000000000006 /* Legal */,
 				D4746EEA1CBC740C006FB401 /* Astralight-Bridging-Header.h */,
 				FB89460419F646E200339C8A /* Crypto */,
 				FB89460919F646E200339C8A /* Input */,
@@ -837,6 +848,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+                A57B00000000000000000003 /* PrivacyInfo.xcprivacy in Resources */,
+                A57B00000000000000000005 /* Legal in Resources */,
 				FB290E7919B37D81004C83CF /* iPad.storyboard in Resources */,
 				FB290CFE19B2C406004C83CF /* InfoPlist.strings in Resources */,
 				FB290E7B19B38036004C83CF /* iPhone.storyboard in Resources */,
@@ -905,6 +918,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+                A57B00000000000000000001 /* ALInformationViewController.m in Sources */,
 				FB290D0719B2C406004C83CF /* Limelight.xcdatamodeld in Sources */,
 				9819CC22254F180F008A7C8E /* AbsoluteTouchHandler.m in Sources */,
 				9819CC14254F107A008A7C8E /* RelativeTouchHandler.m in Sources */,
@@ -1262,7 +1276,7 @@
 					"$(PROJECT_DIR)/libs/SDL2/lib/iOS-Sim",
 					"$(PROJECT_DIR)/libs/FFmpeg/lib/iOS-Sim",
 				);
-				MARKETING_VERSION = 9.0.2;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jordonbibian.Moonlight;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
@@ -1314,7 +1328,7 @@
 					"$(PROJECT_DIR)/libs/SDL2/lib/iOS-Sim",
 					"$(PROJECT_DIR)/libs/FFmpeg/lib/iOS-Sim",
 				);
-				MARKETING_VERSION = 9.0.2;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jordonbibian.Moonlight;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
@@ -1367,8 +1381,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/krzyzanowskim/OpenSSL-Package.git";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 3.1.5004;
+				kind = exactVersion;
+				version = 3.6.3000;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

@@ -45,8 +45,9 @@ A separately installed development build may have its own paired client entry, s
 ## Building
 
 * Install Xcode from the [App Store page](https://apps.apple.com/us/app/xcode/id497799835)
-* Run `git clone --recursive https://github.com/JordonBibian/moonlight-ios.git`
+* Run `git clone --recursive https://github.com/JordonBibian/astralight.git`
   * If you've already cloned the repo without `--recursive`, run `git submodule update --init --recursive`
+* Run `sh BuildScripts/apply-dependency-fixes.sh` to apply the checked-in dependency warning fixes.
 * Open `Astralight.xcodeproj` in Xcode.
 * Select the **Astralight** app scheme for iPhone/iPad, then choose your device or simulator, including iPhone Duo. The `moonlight-common` scheme builds the shared library and does not launch the app.
 * To run on a real device, you will need to locally modify the signing options:
@@ -69,7 +70,7 @@ For the same checks on an iPhone, build the **Astralight** scheme in Debug and a
 
 The AV1 checks use original synthetic Main8 SDR fixtures in `Tests/AV1TestFixtures.h`, containing a keyframe and 15 dependent frames at each of two resolutions. The iPhone test uses the production AV1 sequence-header parser. AV1 is explicitly skipped when hardware decoding is unavailable; the H.264/HEVC checks still run. Fixtures are included only in the Debug diagnostic, and no AV1 encoder is added to the app. To regenerate them, run `Tests/generate-av1-fixtures.py` with Python and PyAV 19.0.2 (including its libsvtav1 encoder).
 
-The legacy C warning fixes also modify the `moonlight-common/moonlight-common-c` and nested `enet` submodule working trees. Preserve those submodule changes when committing or distributing this checkout.
+Release source packaging includes the exact checked-out submodule sources, including the C warning fixes. See [RELEASING.md](RELEASING.md).
 
 The iOS build still reports the deprecated `UIRequiresFullScreen` setting. Removing it requires a separate migration of the stream and input layout to resizable iPad scenes; see [Apple's migration guide](https://developer.apple.com/documentation/technotes/tn3192-migrating-your-app-from-the-deprecated-uirequiresfullscreen-key). Xcode may also emit an App Intents metadata message because this app has no App Intents dependency.
 
@@ -86,3 +87,7 @@ See [LICENSE.txt](LICENSE.txt) for the GPLv3 license and App Store Distribution 
 In a Debug iOS build, launch with `--display-reload-self-test` to exercise native/upscaled fold and unfold, unchanged and invalid sizes, rapid fold reversal, size changes during shutdown, late callbacks, exit cancellation, and repeated shutdown while launch work is pending. It uses a fake stream transport and does not connect to a PC. Look for `PASS display reload` in the console.
 
 Use `--display-reload-ui-test` to test the actual Duo simulator's Closed/Open controls. The diagnostic shows the native size, requested stream size, and session count. Verified transitions are **2034 × 1398 → 2853 × 2007 → 2034 × 1398** native pixels, with **2854 × 2008** requested for the unfolded screen's even-dimension encoder requirement. These checks verify scene detection and reload lifecycle; a live host must still accept the requested resolution. Remove diagnostic arguments for normal use. All diagnostics are excluded from Release builds.
+
+## Privacy and release source
+
+Settings → About Astralight contains the offline Privacy Policy, full Credits & Licenses, and Source Code links. The public policy is [PRIVACY.md](PRIVACY.md). See [RELEASING.md](RELEASING.md) for exact dependency sources, build settings, and release validation.

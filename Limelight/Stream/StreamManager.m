@@ -166,7 +166,7 @@
     NSString *gameSession = [launchResp getStringTag:@"gamesession"];
     if (![launchResp isStatusOk]) {
         [_callbacks launchFailed:launchResp.statusMessage];
-        Log(LOG_E, @"Failed Launch Response: %@", launchResp.statusMessage);
+        Log(LOG_E, @"Failed Launch Response: %ld", (long)launchResp.statusCode);
         return FALSE;
     } else if (gameSession == NULL || [gameSession isEqualToString:@"0"]) {
         [_callbacks launchFailed:@"Failed to launch app"];
@@ -184,7 +184,7 @@
     NSString* resume = [resumeResp getStringTag:@"resume"];
     if (![resumeResp isStatusOk]) {
         [_callbacks launchFailed:resumeResp.statusMessage];
-        Log(LOG_E, @"Failed Resume Response: %@", resumeResp.statusMessage);
+        Log(LOG_E, @"Failed Resume Response: %ld", (long)resumeResp.statusCode);
         return FALSE;
     } else if (resume == NULL || [resume isEqualToString:@"0"]) {
         [_callbacks launchFailed:@"Failed to resume app"];

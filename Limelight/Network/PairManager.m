@@ -81,7 +81,7 @@
 
 // All codepaths must call finishPairing exactly once before returning!
 - (void) initiatePairWithPin:(NSString*)PIN forServerMajorVersion:(int)serverMajorVersion withState:(NSString*)state {
-    Log(LOG_I, @"Pairing with generation %d server in state %@", serverMajorVersion, state);
+    Log(LOG_I, @"Pairing with generation %d server", serverMajorVersion);
     
     // Start a background task to help prevent the app from being killed
     // while pairing is in progress.
@@ -92,7 +92,7 @@
     NSData* salt = [Utils randomBytes:16];
     NSData* saltedPIN = [self concatData:salt with:[PIN dataUsingEncoding:NSUTF8StringEncoding]];
 
-    Log(LOG_I, @"PIN: %@, salt %@", PIN, salt);
+    // Pairing PINs and cryptographic material must not enter diagnostic logs.
     
     HttpResponse* pairResp = [[HttpResponse alloc] init];
     [_httpManager executeRequestSynchronously:[HttpRequest requestForResponse:pairResp withUrlRequest:[_httpManager newPairRequest:salt clientCert:_clientCert]]];

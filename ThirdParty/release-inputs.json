@@ -1,0 +1,270 @@
+{
+  "astralightVersion": "1.0.0",
+  "build": "1",
+  "minimumOS": "27.0",
+  "xcodeTested": "27.1 (27A9275)",
+  "swiftPackage": {
+    "identity": "openssl-package",
+    "version": "3.6.3000",
+    "revision": "a3809db22a45e3ff658377a24da252982a306b9b",
+    "binaryURL": "https://github.com/krzyzanowskim/OpenSSL/releases/download/3.6.3000/OpenSSL.xcframework.zip",
+    "binarySHA256": "6c4b064d12b8de2ae77ac59fbcbbd1c20b4fecfb7fc50b8ab326347c52ecbf0c"
+  },
+  "submodules": [
+    {
+      "path": "X1Kit",
+      "revision": "6e842ae9d5a21916d7c9693c7385d1ac672bc4fa"
+    },
+    {
+      "path": "moonlight-common/moonlight-common-c",
+      "revision": "f900dd4767759c7b9d0e93bcea666b55c69ea62f"
+    },
+    {
+      "path": "moonlight-common/moonlight-common-c/enet",
+      "revision": "aca87840b57f045a1f7f9299e4b1b9b8e2a5e2f1"
+    },
+    {
+      "path": "moonlight-common/moonlight-common-c/nanors",
+      "revision": "b1e3c22ca0cdc0bb83e3cd6ed1a2fc77869ed99a"
+    }
+  ],
+  "sourceArchives": [
+    {
+      "file": "ThirdParty/Sources/ffmpeg-3f890fbfd9014843c51408c8f7ab3ba4aef7d354.tar.gz",
+      "url": "https://codeload.github.com/FFmpeg/FFmpeg/tar.gz/3f890fbfd9014843c51408c8f7ab3ba4aef7d354",
+      "sha256": "4e30c1ffa93b7bfe329032877d969d4811a5ac4c872125d334262f5158048899",
+      "bytes": 15123079
+    },
+    {
+      "file": "ThirdParty/Sources/openssl-3.6.3.tar.gz",
+      "url": "https://codeload.github.com/openssl/openssl/tar.gz/refs/tags/openssl-3.6.3",
+      "sha256": "c5524dd6bfaa8e8ff0f1be885c390d14f3ff0bd2de62a7311b65fcbb75cb7546",
+      "bytes": 55132237
+    },
+    {
+      "file": "ThirdParty/Sources/openssl-package-a3809db22a45e3ff658377a24da252982a306b9b.tar.gz",
+      "url": "https://codeload.github.com/krzyzanowskim/OpenSSL-Package/tar.gz/a3809db22a45e3ff658377a24da252982a306b9b",
+      "sha256": "726f24bd0dbeb3eff645df35a1bc0ed2c0abc18248d593089b19a7141e5534af",
+      "bytes": 4989
+    },
+    {
+      "file": "ThirdParty/Sources/sdl-2.28.5.tar.gz",
+      "url": "https://codeload.github.com/libsdl-org/SDL/tar.gz/15ead9a40d09a1eb9972215cceac2bf29c9b77f6",
+      "sha256": "01ef30262393a538c89b7a4b007dcb9b44d5dfae53e38be2ef8daac3e9113373",
+      "bytes": 7717321
+    },
+    {
+      "file": "ThirdParty/Sources/opus-1.4.tar.gz",
+      "url": "https://downloads.xiph.org/releases/opus/opus-1.4.tar.gz",
+      "sha256": "c9b32b4253be5ae63d1ff16eea06b94b5f0f2951b7a02aceef58e3a3ce49c51f",
+      "bytes": 1063408
+    },
+    {
+      "file": "ThirdParty/Sources/moonlight-mobile-deps-dad1ce6d964b6d4cc61116f1b7170954eb08ef20.tar.gz",
+      "url": "https://codeload.github.com/cgutman/moonlight-mobile-deps/tar.gz/dad1ce6d964b6d4cc61116f1b7170954eb08ef20",
+      "sha256": "6a501cf017049d5ab6ea524ae7c9a98cf7b46f3778936fcd591592099e421a5d",
+      "bytes": 2251
+    }
+  ],
+  "bundledLibrariesAndPatches": [
+    {
+      "file": "Patches/enet-enum-flags.patch",
+      "sha256": "d72e6e7efbdc5461ac0ec67f70f45c046a820f5aac08ae4055f4b85d58ae3621"
+    },
+    {
+      "file": "Patches/moonlight-common-initialization.patch",
+      "sha256": "60ad8ad1f369c658ba8142eec267166b19ed0bc6f90027a8fe1b8ea26e54d7a3"
+    },
+    {
+      "file": "libs/FFmpeg/lib/iOS/libavcodec.a",
+      "sha256": "6e9c99a06a9d4bd64634f487a3265eca15d956d59804f28ec64e3899312d86e4"
+    },
+    {
+      "file": "libs/FFmpeg/lib/iOS/libavformat.a",
+      "sha256": "7a881ad35ae365806a446f194267ac761f3a6e52c65e00edc9f840b6a6388051"
+    },
+    {
+      "file": "libs/FFmpeg/lib/iOS/libavutil.a",
+      "sha256": "c6d210e33c59f0cffadcc3825504a6a2bc4855934fec6aee3591f2be3398065a"
+    },
+    {
+      "file": "libs/FFmpeg/lib/iOS-Sim/libavcodec.a",
+      "sha256": "318fd5ca480e69d95d98dd26d53f38c7a020de0958bed505a801a12bdd9550cc"
+    },
+    {
+      "file": "libs/FFmpeg/lib/iOS-Sim/libavformat.a",
+      "sha256": "0aa7ff175f943d7f1722bf51c5ca72f8d69208338e950f15c9a0321b495bd84c"
+    },
+    {
+      "file": "libs/FFmpeg/lib/iOS-Sim/libavutil.a",
+      "sha256": "3caab4eea739d5a2f8e0de6a9144e27feb7b840606e9cdead7836feece4e12d6"
+    },
+    {
+      "file": "libs/FFmpeg/lib/tvOS/libavcodec.a",
+      "sha256": "e2d076305df91637c65137ae58278f4e19c6e6764f8f6611c7e40f538c0e954a"
+    },
+    {
+      "file": "libs/FFmpeg/lib/tvOS/libavformat.a",
+      "sha256": "1f1a6230d78194b4103b18b85397182adb1a3ce25e337b5937038bbcea476484"
+    },
+    {
+      "file": "libs/FFmpeg/lib/tvOS/libavutil.a",
+      "sha256": "8dfc839e59d302abc617d3c80b45ccf4d4e52103b325bf4fd36fab0d9391a0cf"
+    },
+    {
+      "file": "libs/FFmpeg/lib/tvOS-Sim/libavcodec.a",
+      "sha256": "2cff2bc2c6bb3538d0e480c1bae1ea81eaee8421becd18c9e031d6b863ae5f14"
+    },
+    {
+      "file": "libs/FFmpeg/lib/tvOS-Sim/libavformat.a",
+      "sha256": "9d0dbb6080cd4dcdcb68a9dbf6fdbbdace3ffe6d6a3e8c729db68832005ca9ef"
+    },
+    {
+      "file": "libs/FFmpeg/lib/tvOS-Sim/libavutil.a",
+      "sha256": "7226f796025e7b00a43a8286490a5ed4d08162ba26585d38774e5222a8b41b42"
+    },
+    {
+      "file": "libs/SDL2/lib/iOS/libSDL2.a",
+      "sha256": "8794ed9b30bfa9cf7992ca971a7ca86365cf4a575f44e83516d4969619b1c345"
+    },
+    {
+      "file": "libs/SDL2/lib/iOS-Sim/libSDL2.a",
+      "sha256": "a68b763366f4d603180232227d086acc05575467e5012040dea776bd45cee91f"
+    },
+    {
+      "file": "libs/SDL2/lib/tvOS/libSDL2.a",
+      "sha256": "03a7ad43107de430d3cee27b450eefa45ea68f7854989c6505942bc119359395"
+    },
+    {
+      "file": "libs/SDL2/lib/tvOS-Sim/libSDL2.a",
+      "sha256": "dffae42d16159c3eedf43aa8931ef35bd074d24d0efafcdb8604d7a7079e1c91"
+    },
+    {
+      "file": "libs/opus/lib/iOS/libopus.a",
+      "sha256": "a2fbb2ac4e2c11177c6a8ec696c5e3a097527811c58f49afde70edd60dacb213"
+    },
+    {
+      "file": "libs/opus/lib/iOS-Sim/libopus.a",
+      "sha256": "3296f7c993aba55396ba0e9efcd9cd12dc3c092c906d4af3de60a6fa74c2b32d"
+    },
+    {
+      "file": "libs/opus/lib/tvOS/libopus.a",
+      "sha256": "ac1dd3d9a80987283f3baeff2a4a3b249611c155a46ed8fb739e45822034b777"
+    },
+    {
+      "file": "libs/opus/lib/tvOS-Sim/libopus.a",
+      "sha256": "f935480c8a0d91a6365a6731493a3ff91c3d451d3339a2dfe6a89e120a6f7e1e"
+    }
+  ],
+  "openSSLBuildSupport": {
+    "upstreamArchive": "https://codeload.github.com/krzyzanowskim/OpenSSL/tar.gz/refs/tags/3.6.3000",
+    "upstreamArchiveSHA256": "bd095177aeca5e16f12f5d8db3238a14696e747e9ca3e20d1d4cd575a32e5246",
+    "note": "Build sources, configuration, patches, shim, support files and license extracted unchanged; prebuilt platform libraries and duplicate frameworks omitted.",
+    "files": [
+      {
+        "file": "ThirdParty/OpenSSLBuild/.gitignore",
+        "sha256": "0ff71b007c2ef6bc4bc2dbd111622d0154d102d0ca2c5c3da9ec8c53d019906b"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/LICENSE.txt",
+        "sha256": "97f8c5963a5159e790bcc908106ff22143f2f7f708bcc950f055aee96aecc0bb"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/Makefile",
+        "sha256": "48bdea742ed4aa5bf4c5d2ad01b187b83be90fc88c83442fde68f2db1134dd50"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/OpenSSL-Universal.podspec",
+        "sha256": "13aae619c49d88a51c01efb12bcd52b7d403e2ae5df1037883d2770e43a9ef9b"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/OpenSSL.json",
+        "sha256": "bf3d1eede40a5dca217a8be6a500b01df313a11b5a23346398dcb2ae0418ba66"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/Package.swift",
+        "sha256": "da0fb480c7944e515a15960ed87afdd0f8b5522e4f98fee191ce224f05248323"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/Project.swift",
+        "sha256": "ba0be1faefd784eeeb471dcf9e70419d8d50fc417e501a2bd594c5e2037697bc"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/README.md",
+        "sha256": "033a2ba9faee695d723e7d10095e6ab29d2b34f7212f14c330be7eec18a3da7e"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/_config.yml",
+        "sha256": "10ec8472e3dc8d11b724ac488753a29977ba7b8c00089960c874c05c0ba3eae1"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/config/20-apple.conf",
+        "sha256": "0187c7d15da771eeb1ae493e43be09c64f554d4b0c1d1d974c2c12cd2ceb3bbe"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/patches/openssl-1.1.1q.patch",
+        "sha256": "626fd9216c6089e432681df086acf75e109312165085d2c4a63bd66d3b661470"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/scripts/build.sh",
+        "sha256": "ef87f76fb3e69600ff954b6e08bde6c1160c1dd59abdf5c80f5733322b8f933c"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/scripts/create-frameworks.sh",
+        "sha256": "eae94cdcbbaded7b30fb09dc06aacaad55eba7853f2150fa0298267a7774fd1b"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/shim/shim.h",
+        "sha256": "1dbf72a72b96264d59236c460c8a0206526b2b89f6ac05b99c70e546f8db8e5f"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/support/OpenSSL.h",
+        "sha256": "8f22fff3dbd7485e0c99c99c104c25dbf002f07ff9daf8497b706a1fbc3fa644"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/support/PrivacyInfo.xcprivacy",
+        "sha256": "5a9b8fc0cddb10201bb47cc2804b3f004c7251476622d25bfc4eb54ed46e1084"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/support/appletvos/Info.plist",
+        "sha256": "f8fd1a1ae993861c4a8a659e206fde064e5a5fec1d761a704fa4f84fe636cc06"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/support/appletvsimulator/Info.plist",
+        "sha256": "f8fd1a1ae993861c4a8a659e206fde064e5a5fec1d761a704fa4f84fe636cc06"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/support/iphoneos/Info.plist",
+        "sha256": "f8fd1a1ae993861c4a8a659e206fde064e5a5fec1d761a704fa4f84fe636cc06"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/support/iphonesimulator/Info.plist",
+        "sha256": "f8fd1a1ae993861c4a8a659e206fde064e5a5fec1d761a704fa4f84fe636cc06"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/support/macos/Info.plist",
+        "sha256": "f8fd1a1ae993861c4a8a659e206fde064e5a5fec1d761a704fa4f84fe636cc06"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/support/macos_catalyst/Info.plist",
+        "sha256": "f8fd1a1ae993861c4a8a659e206fde064e5a5fec1d761a704fa4f84fe636cc06"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/support/visionos/Info.plist",
+        "sha256": "f8fd1a1ae993861c4a8a659e206fde064e5a5fec1d761a704fa4f84fe636cc06"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/support/visionsimulator/Info.plist",
+        "sha256": "f8fd1a1ae993861c4a8a659e206fde064e5a5fec1d761a704fa4f84fe636cc06"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/support/watchos/Info.plist",
+        "sha256": "f8fd1a1ae993861c4a8a659e206fde064e5a5fec1d761a704fa4f84fe636cc06"
+      },
+      {
+        "file": "ThirdParty/OpenSSLBuild/support/watchsimulator/Info.plist",
+        "sha256": "f8fd1a1ae993861c4a8a659e206fde064e5a5fec1d761a704fa4f84fe636cc06"
+      }
+    ]
+  }
+}
